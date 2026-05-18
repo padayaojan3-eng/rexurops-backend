@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,13 +21,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-(m0&&tr+zugsd*@8ofb7%r_o#5p141^g9%e%7t8xs!dggniuoj'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-(m0&&tr+zugsd*@8ofb7%r_o#5p141^g9%e%7t8xs!dggniuoj')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     # Third-party packages
     'rest_framework',
     'crispy_forms',
+    'crispy_bootstrap4',
     'django_extensions',
 
     # Your custom apps
@@ -52,8 +53,9 @@ INSTALLED_APPS = [
     'projects',
 ]
 
-MIDDLEWARE = [ 
+MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -86,14 +88,10 @@ WSGI_APPLICATION = 'crm_engineering.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'crm_engineering_db',
-        'USER': 'postgres',
-        'PASSWORD': 'jina_jin2006',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        default='postgresql://postgres:jina_jin2006@localhost:5432/crm_engineering_db',
+        conn_max_age=600,
+    )
 }
 
 # Password validation
@@ -130,14 +128,19 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
-
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 LOGIN_URL = '/'
 LOGIN_REDIRECT_URL = '/dashboard/'
- 
-ADMIN_ENABLED = True 
+
+ADMIN_ENABLED = True
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
