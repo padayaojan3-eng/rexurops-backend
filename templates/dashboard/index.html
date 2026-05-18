@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Operations Dashboard - RexurOps{% endblock %}
+{% block content %}
+
+<div class="page-header">
+    <h1 class="page-header__title">Operations Dashboard</h1>
+    <p class="page-header__subtitle">Real-time overview of all RexurOps activities and operations</p>
+</div>
+
+<!-- STATS GRID -->
+<div class="stats-grid">
+
+    <a href="{% url 'service_requests' %}" class="stat-card stat-card--link">
+        <div class="stat-card__number">{{ total_requests }}</div>
+        <div class="stat-card__label">Requests</div>
+        <span class="badge badge--amber">{{ new_requests }} new</span>
+    </a>
+
+    <a href="{% url 'appointments_list' %}" class="stat-card stat-card--link">
+        <div class="stat-card__number">{{ total_appointments }}</div>
+        <div class="stat-card__label">Appointments</div>
+        <span class="badge badge--blue">{{ upcoming_appointments }} upcoming</span>
+    </a>
+
+    <a href="{% url 'blueprints_list' %}" class="stat-card stat-card--link">
+        <div class="stat-card__number">{{ total_blueprints }}</div>
+        <div class="stat-card__label">Blueprints</div>
+        <span class="badge badge--amber">{{ pending_blueprints }} pending</span>
+    </a>
+
+    <a href="{% url 'projects_list' %}" class="stat-card stat-card--link">
+        <div class="stat-card__number">{{ total_projects }}</div>
+        <div class="stat-card__label">Projects</div>
+        <span class="badge badge--teal">{{ active_projects }} active</span>
+    </a>
+
+    <a href="{% url 'tasks_list' %}" class="stat-card stat-card--link">
+        <div class="stat-card__number">{{ total_tasks }}</div>
+        <div class="stat-card__label">Tasks</div>
+        <span class="badge badge--teal">{{ active_tasks }} active</span>
+    </a>
+
+    <a href="{% url 'clients_list' %}" class="stat-card stat-card--link">
+        <div class="stat-card__number">{{ total_clients }}</div>
+        <div class="stat-card__label">Clients</div>
+        <span class="badge badge--teal">{{ total_clients }} active</span>
+    </a>
+
+    <div class="stat-card stat-card--progress">
+        <div class="stat-card__progress-pct">{{ overall_progress }}%</div>
+        <div class="stat-card__progress-title">Overall Progress</div>
+        <div class="stat-card__progress-sub">Active projects average</div>
+    </div>
+
+</div>
+
+<!-- MIDDLE SECTION -->
+<div class="middle-grid">
+
+    <div class="panel">
+        <div class="panel__header">
+            <h2 class="panel__title">Pending Service Requests</h2>
+            <a href="{% url 'service_requests' %}?status=pending" class="view-all-link">View All <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="request-list">
+            {% for req in pending_requests %}
+            <a href="{% url 'service_requests' %}?status=pending" class="request-card request-card--link">
+                <div class="request-card__top">
+                    <span class="request-card__client">{{ req.client.full_name }}</span>
+                    <span class="badge badge--pending">{{ req.status }}</span>
+                </div>
+                <div class="request-card__service">{{ req.service.get_name_display|upper }}</div>
+                <div class="request-card__date">{{ req.submitted_at|date:"n/j/Y" }}</div>
+            </a>
+            {% empty %}
+            <div class="empty-msg">No pending service requests</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel__header">
+            <h2 class="panel__title">Recent Activity</h2>
+        </div>
+        <div class="activity-list">
+            {% for activity in activities %}
+            <div class="activity-item">
+                <div class="activity-item__avatar activity-item__avatar--{{ activity.color }}">
+                    {{ activity.icon }}
+                </div>
+                <div class="activity-item__body">
+                    <div class="activity-item__title activity-item__title--{{ activity.color }}">
+                        {{ activity.title }}
+                    </div>
+                    <div class="activity-item__desc">{{ activity.description }}</div>
+                    <div class="activity-item__time">{{ activity.timestamp|date:"n/j/Y, g:i:s A" }}</div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-msg">No recent activity</div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- ACTIVE PROJECTS STATUS -->
+<div class="panel">
+    <div class="panel__header">
+        <h2 class="panel__title">Active Projects Status</h2>
+        <a href="{% url 'projects_list' %}?stage=ongoing" class="view-all-link">View All <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <div class="project-list">
+        {% for item in active_projects_list %}
+        <a href="{% url 'projects_list' %}?stage=ongoing" class="project-row project-row--link">
+            <div class="project-row__header">
+                <div class="project-row__info">
+                    <div class="project-row__name">{{ item.project.name }}</div>
+                    <div class="project-row__manager">
+                        {% if item.project.manager %}
+                            {{ item.project.manager.get_full_name|default:item.project.manager.username }}
+                        {% endif %}
+                    </div>
+                </div>
+                <span class="badge badge--purple">{{ item.project.get_stage_display }}</span>
+            </div>
+            <div class="project-row__progress-label">
+                <span>Progress</span>
+                <span>{{ item.progress }}%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" style="width: {{ item.progress }}%;"></div>
+            </div>
+            <div class="project-row__workers">{{ item.worker_count }} workers</div>
+        </a>
+        {% empty %}
+        <div class="empty-msg">No active projects</div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}

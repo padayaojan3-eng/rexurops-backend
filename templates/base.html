@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RexurOps Admin Portal{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+</head>
+<body>
+
+    <!-- Top system bar -->
+    <div class="topbar">
+        <span class="topbar__title">
+            Client Management System <i class="fas fa-chevron-down topbar__icon"></i>
+        </span>
+    </div>
+
+    <header class="site-header">
+        <div class="site-header__inner">
+            <div class="logo">
+                <img src="{% static 'images/logo.png' %}" alt="Rexur Logo" style="height:54px;width:54px;object-fit:contain;border-radius:6px;">
+            </div>
+            <div class="header-meta">
+                <span class="header-meta__title">RexurOps Admin Portal</span>
+                <span class="header-meta__subtitle">Operations Management System</span>
+            </div>
+            <div class="header-user">
+                <span class="header-user__name">
+                    <i class="fas fa-user-circle"></i>
+                    {{ request.user.get_full_name|default:request.user.username }}
+                </span>
+                <a href="{% url 'logout' %}" class="header-user__logout">
+                    <i class="fas fa-right-from-bracket"></i> Sign Out
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <nav class="site-nav">
+        <div class="site-nav__inner">
+            <a href="{% url 'dashboard' %}" class="nav-tab {% if active_nav == 'dashboard' %}nav-tab--active{% endif %}">Dashboard</a>
+            <a href="{% url 'service_requests' %}" class="nav-tab {% if active_nav == 'service_requests' %}nav-tab--active{% endif %}">Service Requests</a>
+            <a href="{% url 'appointments_list' %}" class="nav-tab {% if active_nav == 'appointments' %}nav-tab--active{% endif %}">Appointments</a>
+            <a href="{% url 'blueprints_list' %}" class="nav-tab {% if active_nav == 'blueprints' %}nav-tab--active{% endif %}">Blueprints</a>
+            <a href="{% url 'projects_list' %}" class="nav-tab {% if active_nav == 'projects' %}nav-tab--active{% endif %}">Projects</a>
+            <a href="{% url 'tasks_list' %}" class="nav-tab {% if active_nav == 'tasks' %}nav-tab--active{% endif %}">Tasks</a>
+            <a href="{% url 'clients_list' %}" class="nav-tab {% if active_nav == 'clients' %}nav-tab--active{% endif %}">Clients</a>
+            <a href="{% url 'employees_list' %}" class="nav-tab {% if active_nav == 'employees' %}nav-tab--active{% endif %}">Employees</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+
+<script>
+function doArchive(url) {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    var token = meta ? meta.getAttribute('content') : '';
+    var fd = new FormData();
+    fd.append('csrfmiddlewaretoken', token);
+    fetch(url, { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.ok) {
+                _archiveToast(data.archived ? 'Item archived.' : 'Item restored.');
+                setTimeout(function() { window.location.reload(); }, 900);
+            } else {
+                alert('Error: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(function() { alert('Network error. Please try again.'); });
+}
+
+function _archiveToast(msg) {
+    var t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);' +
+        'background:#1e293b;color:#fff;font-size:13px;font-weight:600;padding:12px 24px;' +
+        'border-radius:6px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.18);' +
+        'display:flex;align-items:center;gap:8px;white-space:nowrap;';
+    t.innerHTML = '<i class="fas fa-circle-check" style="color:#C99746;"></i> ' + msg;
+    document.body.appendChild(t);
+    setTimeout(function() { t.remove(); }, 2000);
+}
+</script>
+</body>
+</html>

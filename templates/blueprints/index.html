@@ -1,0 +1,567 @@
+{% extends 'base.html' %}
+{% block title %}Blueprints - RexurOps{% endblock %}
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-header__title">Blueprints</h1>
+    <p class="page-header__subtitle">Manage blueprint development, revisions, and approval workflow</p>
+</div>
+
+<!-- Status Filter Cards -->
+<div class="sr-filters">
+    <a href="{% url 'blueprints_list' %}{% if search_query %}?search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'all' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">All</div>
+        <div class="sr-filter-card__count">{{ counts.all }}</div>
+    </a>
+    <a href="{% url 'blueprints_list' %}?status=draft{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'draft' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Draft</div>
+        <div class="sr-filter-card__count">{{ counts.draft }}</div>
+    </a>
+    <a href="{% url 'blueprints_list' %}?status=submitted{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'submitted' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Pending Approval</div>
+        <div class="sr-filter-card__count">{{ counts.submitted }}</div>
+    </a>
+    <a href="{% url 'blueprints_list' %}?status=approved{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'approved' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Approved</div>
+        <div class="sr-filter-card__count">{{ counts.approved }}</div>
+    </a>
+    <a href="{% url 'blueprints_list' %}?status=revision_needed{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'revision_needed' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Revision Required</div>
+        <div class="sr-filter-card__count">{{ counts.revision_needed }}</div>
+    </a>
+    <a href="{% url 'blueprints_list' %}?archived=1"
+       class="sr-filter-card {% if show_archived %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label"><i class="fas fa-box-archive" style="font-size:11px;margin-right:3px;"></i>Archived</div>
+        <div class="sr-filter-card__count">{% if show_archived %}{{ counts.all }}{% else %}&ndash;{% endif %}</div>
+    </a>
+</div>
+
+<!-- Search Bar -->
+<form method="get" class="sr-search-form">
+    <div class="sr-search-bar">
+        <i class="fas fa-search"></i>
+        <input type="text" name="search" class="sr-search-input"
+               value="{{ search_query }}"
+               placeholder="Search by project name, client, or engineer...">
+    </div>
+    {% if status_filter and status_filter != 'all' %}
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    {% endif %}
+</form>
+
+<!-- Blueprint Cards -->
+{% if bp_data %}
+<div class="appt-grid">
+    {% for item in bp_data %}
+    <div class="bp-card" style="cursor:pointer;" onclick="openBpDetail({{ item.blueprint.id }})">
+
+        <!-- Title + Version -->
+        <div class="bp-card__header">
+            <div class="bp-card__title-block">
+                <div class="bp-card__title">{{ item.blueprint.title }}</div>
+                <div class="bp-card__client">{{ item.blueprint.service_request.client.full_name }}</div>
+            </div>
+            <div class="bp-card__version">
+                <div class="bp-card__version-label">Version</div>
+                <div class="bp-card__version-number">{{ item.blueprint.version }}.0</div>
+            </div>
+        </div>
+
+        <!-- Status + File count -->
+        <div class="bp-card__badges">
+            {% if item.blueprint.status == 'draft' %}
+                <span class="badge badge--gray">draft</span>
+            {% elif item.blueprint.status == 'submitted' %}
+                <span class="badge badge--amber">pending approval</span>
+            {% elif item.blueprint.status == 'approved' %}
+                <span class="badge badge--green">approved</span>
+            {% elif item.blueprint.status == 'revision_needed' %}
+                <span class="badge badge--red">revision required</span>
+            {% endif %}
+            <span class="bp-file-badge">
+                <i class="fas fa-file"></i>
+                {{ item.file_count }} file{{ item.file_count|pluralize }}
+            </span>
+        </div>
+
+        <!-- Meta info -->
+        <div class="bp-card__meta">
+            {% if item.blueprint.created_by %}
+            <div class="bp-card__meta-row">
+                <span class="bp-card__meta-label">Created by:</span>
+                <span class="bp-card__meta-val">Engr. {{ item.blueprint.created_by.get_full_name|default:item.blueprint.created_by.username }}</span>
+            </div>
+            {% endif %}
+            {% if item.blueprint.reviewed_by %}
+            <div class="bp-card__meta-row">
+                <span class="bp-card__meta-label">Approved by:</span>
+                <span class="bp-card__meta-val">{{ item.blueprint.reviewed_by.get_full_name|default:item.blueprint.reviewed_by.username }}</span>
+            </div>
+            {% endif %}
+            <div class="bp-card__meta-row">
+                <span class="bp-card__meta-label">Last updated:</span>
+                <span class="bp-card__meta-val">{{ item.blueprint.updated_at|date:"n/j/Y" }}</span>
+            </div>
+        </div>
+
+        <!-- Remarks preview -->
+        {% if item.blueprint.remarks %}
+        <div class="bp-card__remarks">{{ item.blueprint.remarks }}</div>
+        {% endif %}
+
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-msg">No blueprints found</div>
+{% endif %}
+
+
+<!-- ── BLUEPRINT DETAIL MODAL ── -->
+<div class="modal-overlay" id="modalBpDetail" onclick="if(event.target===this)closeBpDetail()">
+    <div class="modal" style="max-width:600px;max-height:90vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
+
+        <!-- Fixed Header -->
+        <div style="padding:24px 28px 0;flex-shrink:0;">
+            <div class="modal__header" style="margin-bottom:4px;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span class="modal__title">Blueprint Details</span>
+                    <span id="bpDetailBadge" class="badge"></span>
+                </div>
+                <button class="modal__close" onclick="closeBpDetail()">&times;</button>
+            </div>
+            <div id="bpDetailVersion" style="font-size:12px;color:#94a3b8;margin-bottom:20px;"></div>
+        </div>
+
+        <!-- Scrollable Body -->
+        <div id="bpDetailContent" style="overflow-y:auto;padding:0 28px 28px;flex:1;">
+            <div style="text-align:center;padding:40px 0;color:#94a3b8;">
+                <i class="fas fa-circle-notch fa-spin" style="font-size:24px;margin-bottom:12px;display:block;"></i>
+                Loading...
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Hidden CSRF for AJAX -->
+<form id="csrfHolder">{% csrf_token %}</form>
+
+
+<script>
+var _currentBpId = null;
+
+function openBpDetail(bp_id) {
+    _currentBpId = bp_id;
+    document.getElementById('bpDetailBadge').className = 'badge';
+    document.getElementById('bpDetailBadge').textContent = '';
+    document.getElementById('bpDetailVersion').textContent = '';
+    document.getElementById('bpDetailContent').innerHTML =
+        '<div style="text-align:center;padding:40px 0;color:#94a3b8;">' +
+        '<i class="fas fa-circle-notch fa-spin" style="font-size:24px;margin-bottom:12px;display:block;"></i>Loading...</div>';
+    document.getElementById('modalBpDetail').classList.add('modal-overlay--active');
+
+    fetch('/blueprints/' + bp_id + '/detail/')
+        .then(r => r.json())
+        .then(data => renderBpDetail(data))
+        .catch(() => {
+            document.getElementById('bpDetailContent').innerHTML =
+                '<div style="text-align:center;padding:40px;color:#dc2626;">Failed to load blueprint details.</div>';
+        });
+}
+
+function closeBpDetail() {
+    document.getElementById('modalBpDetail').classList.remove('modal-overlay--active');
+    _currentBpId = null;
+}
+
+var _badgeMap = {
+    draft:            ['badge--gray',  'draft'],
+    submitted:        ['badge--amber', 'pending approval'],
+    approved:         ['badge--green', 'approved'],
+    revision_needed:  ['badge--red',   'revision required'],
+};
+
+function renderBpDetail(d) {
+    // Header badge + version
+    var bm = _badgeMap[d.status] || ['badge--gray', d.status];
+    var badge = document.getElementById('bpDetailBadge');
+    badge.className = 'badge ' + bm[0];
+    badge.textContent = bm[1];
+    document.getElementById('bpDetailVersion').textContent =
+        'Version ' + d.current_version + '.0  •  Blueprint ID: ' + d.id;
+
+    var approvedRow = '';
+    if (d.approved_by) {
+        approvedRow =
+            '<div><div class="bp-detail-label">Approved By</div><div class="bp-detail-val">' + esc(d.approved_by) + '</div></div>' +
+            '<div><div class="bp-detail-label">Approved Date</div><div class="bp-detail-val">' + esc(d.approved_at) + '</div></div>';
+    }
+
+    var notesBlock = '';
+    if (d.remarks) {
+        notesBlock =
+            '<div style="margin-bottom:24px;">' +
+            '<div class="bp-section-title">Notes</div>' +
+            '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:14px;font-size:13px;color:#475569;line-height:1.6;">' +
+            esc(d.remarks) + '</div></div>';
+    }
+
+    // Attached Files
+    var filesHtml = buildFilesHtml(d.files, d.id);
+
+    // Revision History
+    var revisionsHtml = buildRevisionsHtml(d.revisions);
+
+    // Admin action buttons
+    var actionsHtml =
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;">' +
+        '<button type="button" id="approveBpBtn" onclick="approveBp(' + d.id + ')" ' +
+        'style="display:inline-flex;align-items:center;gap:6px;padding:9px 20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:13px;font-weight:600;color:#475569;cursor:pointer;">' +
+        '<i class="fas fa-circle-check" style="color:#94a3b8;"></i> Approve</button>' +
+        '<form method="post" action="/blueprints/' + d.id + '/request-revision/" style="margin:0;">' +
+        '<input type="hidden" name="csrfmiddlewaretoken" value="' + getCsrf() + '">' +
+        '<button type="submit" style="display:inline-flex;align-items:center;gap:6px;padding:9px 20px;background:#fff8ec;border:1px solid #fde68a;border-radius:4px;font-size:13px;font-weight:600;color:#92400e;cursor:pointer;">' +
+        '<i class="fas fa-rotate-left" style="color:#d97706;"></i> Request Revision</button></form>' +
+        '</div>';
+
+    // Complete Revision panel (shown only when revision_needed)
+    var revisionPanelHtml = '';
+    if (d.status === 'revision_needed') {
+        revisionPanelHtml =
+            '<div style="border:1px solid #fde68a;border-radius:6px;background:#fffbeb;padding:18px 20px;margin-top:16px;">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+            '<i class="fas fa-pen-ruler" style="color:#d97706;font-size:14px;"></i>' +
+            '<div style="font-size:13px;font-weight:700;color:#92400e;">Complete Revision</div>' +
+            '</div>' +
+            '<div style="font-size:12px;color:#78350f;margin-bottom:14px;">Fill in the details below to submit a new version of this blueprint.</div>' +
+            '<div style="display:flex;flex-direction:column;gap:12px;">' +
+
+            // Summary
+            '<div>' +
+            '<div class="bp-detail-label" style="margin-bottom:4px;">Version Summary <span style="color:#dc2626;">*</span></div>' +
+            '<input type="text" id="newRevSummary" placeholder="Brief description of changes in this version"' +
+            ' style="width:100%;background:#fff;border:1px solid #fde68a;border-radius:4px;padding:9px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;">' +
+            '</div>' +
+
+            // Notes
+            '<div>' +
+            '<div class="bp-detail-label" style="margin-bottom:4px;">Detailed Notes</div>' +
+            '<textarea id="newRevNotes" rows="3" placeholder="Full description of what was changed and why..."' +
+            ' style="width:100%;background:#fff;border:1px solid #fde68a;border-radius:4px;padding:9px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;resize:vertical;min-height:72px;"></textarea>' +
+            '</div>' +
+
+            // File upload
+            '<div>' +
+            '<div class="bp-detail-label" style="margin-bottom:6px;">Attach Files <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>' +
+            '<label id="newRevDropZone" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;' +
+            'border:2px dashed #fbbf24;border-radius:6px;background:#fff;padding:20px 16px;cursor:pointer;transition:border-color 0.15s;"' +
+            ' onmouseover="this.style.borderColor=\'#C99746\'" onmouseout="this.style.borderColor=\'#fbbf24\'">' +
+            '<i class="fas fa-cloud-arrow-up" style="font-size:22px;color:#d97706;"></i>' +
+            '<span id="newRevFileText" style="font-size:13px;font-weight:600;color:#92400e;">Click to select files</span>' +
+            '<span style="font-size:11px;color:#b45309;">PDF, DWG, DXF, PNG, JPG</span>' +
+            '<input type="file" id="newRevFiles" multiple style="display:none;" onchange="onNewRevFilesChange()">' +
+            '</label>' +
+            '<div id="newRevFileList" style="margin-top:8px;display:flex;flex-direction:column;gap:4px;"></div>' +
+            '</div>' +
+
+            '<div style="display:flex;justify-content:flex-end;">' +
+            '<button type="button" id="newRevSubmitBtn" onclick="submitNewRevision(' + d.id + ')" ' +
+            'style="display:inline-flex;align-items:center;gap:7px;padding:9px 22px;background:#C99746;color:#fff;border:none;border-radius:4px;font-size:13px;font-weight:600;cursor:pointer;">' +
+            '<i class="fas fa-circle-check"></i> Complete Revision</button>' +
+            '</div>' +
+            '</div></div>';
+    }
+
+    document.getElementById('bpDetailContent').innerHTML =
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;margin-bottom:24px;">' +
+            '<div><div class="bp-detail-label">Project Name</div><div class="bp-detail-val" style="font-weight:600;color:#0f172a;">' + esc(d.title) + '</div></div>' +
+            '<div><div class="bp-detail-label">Client</div><div class="bp-detail-val">' + esc(d.client) + '</div></div>' +
+            '<div><div class="bp-detail-label">Created By</div><div class="bp-detail-val">' + esc(d.created_by) + '</div></div>' +
+            '<div><div class="bp-detail-label">Version</div><div class="bp-detail-val" style="color:#C99746;font-weight:700;">' + d.current_version + '.0</div></div>' +
+            '<div><div class="bp-detail-label">Created Date</div><div class="bp-detail-val">' + esc(d.created_at) + '</div></div>' +
+            '<div><div class="bp-detail-label">Last Updated</div><div class="bp-detail-val">' + esc(d.updated_at) + '</div></div>' +
+            approvedRow +
+        '</div>' +
+        notesBlock +
+        filesHtml +
+        revisionsHtml +
+        '<div style="border-top:1px solid #f1f5f9;padding-top:16px;margin-top:4px;">' +
+        actionsHtml +
+        revisionPanelHtml +
+        '</div>';
+}
+
+function buildFilesHtml(files, bp_id) {
+    var uploadBtn =
+        '<button type="button" onclick="triggerFileUpload(' + bp_id + ')" ' +
+        'style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:12px;font-weight:600;color:#475569;cursor:pointer;transition:background 0.15s;">' +
+        '<i class="fas fa-upload" style="font-size:11px;"></i> Upload Files</button>';
+
+    var header =
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
+        '<div class="bp-section-title" style="margin-bottom:0;">Attached Files</div>' +
+        uploadBtn + '</div>';
+
+    var fileRows = '';
+    if (files.length === 0) {
+        fileRows = '<div style="font-size:13px;color:#94a3b8;padding:12px 0;">No files attached yet.</div>';
+    } else {
+        files.forEach(function(f) {
+            var ext = f.name.split('.').pop().toLowerCase();
+            var icon = (ext === 'pdf') ? 'fa-file-pdf' : (ext === 'dwg' || ext === 'dxf') ? 'fa-file-lines' : 'fa-file';
+            fileRows +=
+                '<div id="file-row-' + f.id + '" style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;margin-bottom:6px;">' +
+                '<i class="fas ' + icon + '" style="color:#94a3b8;font-size:16px;flex-shrink:0;"></i>' +
+                '<div style="flex:1;min-width:0;">' +
+                '<div style="font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+                (f.url ? '<a href="' + f.url + '" target="_blank" style="color:#1e293b;text-decoration:none;" onclick="event.stopPropagation();">' + esc(f.name) + '</a>' : esc(f.name)) +
+                '</div>' +
+                '<div style="font-size:11px;color:#94a3b8;">' + esc(f.size) + ' • Uploaded by ' + esc(f.uploaded_by) + ' • ' + esc(f.uploaded_at) + '</div>' +
+                '</div>' +
+                '<button type="button" onclick="deleteBpFile(' + f.id + ')" ' +
+                'style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:#fca5a5;cursor:pointer;border-radius:4px;transition:background 0.15s;flex-shrink:0;" ' +
+                'onmouseover="this.style.background=\'#fef2f2\'" onmouseout="this.style.background=\'none\'">' +
+                '<i class="fas fa-trash" style="font-size:12px;"></i></button>' +
+                '</div>';
+        });
+    }
+
+    return '<div style="margin-bottom:24px;" id="filesSection">' + header + '<div id="filesList">' + fileRows + '</div></div>';
+}
+
+function buildRevisionsHtml(revisions) {
+    if (!revisions || revisions.length === 0) return '';
+    var html = '<div style="margin-bottom:20px;"><div class="bp-section-title">Revision History</div>';
+    revisions.forEach(function(r) {
+        var filesBadge = r.file_count > 0
+            ? '<div style="margin-top:8px;display:flex;align-items:center;gap:6px;font-size:12px;color:#C99746;">' +
+              '<i class="fas fa-file"></i> ' + r.file_count + ' file(s) added</div>'
+            : '';
+        var notesBox = r.notes
+            ? '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:12px;font-size:12px;color:#475569;line-height:1.6;margin-top:8px;">' + esc(r.notes) + '</div>'
+            : '';
+        html +=
+            '<div style="border:1px solid #e2e8f0;border-radius:4px;padding:14px;margin-bottom:10px;background:#fff;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
+            '<div style="font-size:13px;font-weight:700;color:#0f172a;">Version ' + r.version + '.0 ' +
+            '<span style="font-weight:400;color:#64748b;">by ' + esc(r.created_by) + '</span></div>' +
+            '<div style="font-size:11px;color:#94a3b8;">' + esc(r.created_at) + '</div>' +
+            '</div>' +
+            (r.summary ? '<div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;">Summary</div>' +
+            '<div style="font-size:13px;color:#1e293b;margin-bottom:6px;">' + esc(r.summary) + '</div>' : '') +
+            (r.notes ? '<div style="font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;">Detailed Notes</div>' + notesBox : '') +
+            filesBadge +
+            '</div>';
+    });
+    html += '</div>';
+    return html;
+}
+
+function triggerFileUpload(bp_id) {
+    var inp = document.createElement('input');
+    inp.type = 'file';
+    inp.multiple = true;
+    inp.onchange = function() {
+        Array.from(inp.files).forEach(function(f) { uploadBpFile(bp_id, f); });
+    };
+    inp.click();
+}
+
+function uploadBpFile(bp_id, file) {
+    var fd = new FormData();
+    fd.append('file', file);
+    fd.append('csrfmiddlewaretoken', getCsrf());
+
+    fetch('/blueprints/' + bp_id + '/upload-file/', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(function(f) {
+            if (f.error) { alert('Upload failed: ' + f.error); return; }
+            var ext = f.name.split('.').pop().toLowerCase();
+            var icon = (ext === 'pdf') ? 'fa-file-pdf' : (ext === 'dwg' || ext === 'dxf') ? 'fa-file-lines' : 'fa-file';
+            var row =
+                '<div id="file-row-' + f.id + '" style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;margin-bottom:6px;">' +
+                '<i class="fas ' + icon + '" style="color:#94a3b8;font-size:16px;flex-shrink:0;"></i>' +
+                '<div style="flex:1;min-width:0;">' +
+                '<div style="font-size:13px;font-weight:600;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' +
+                '<a href="' + f.url + '" target="_blank" style="color:#1e293b;text-decoration:none;" onclick="event.stopPropagation();">' + esc(f.name) + '</a>' +
+                '</div>' +
+                '<div style="font-size:11px;color:#94a3b8;">' + esc(f.size) + ' • Uploaded by ' + esc(f.uploaded_by) + ' • ' + esc(f.uploaded_at) + '</div>' +
+                '</div>' +
+                '<button type="button" onclick="deleteBpFile(' + f.id + ')" ' +
+                'style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:none;border:none;color:#fca5a5;cursor:pointer;border-radius:4px;transition:background 0.15s;flex-shrink:0;" ' +
+                'onmouseover="this.style.background=\'#fef2f2\'" onmouseout="this.style.background=\'none\'">' +
+                '<i class="fas fa-trash" style="font-size:12px;"></i></button>' +
+                '</div>';
+            var list = document.getElementById('filesList');
+            if (list) {
+                var empty = list.querySelector('[style*="No files"]');
+                if (empty) list.innerHTML = '';
+                list.insertAdjacentHTML('beforeend', row);
+            }
+        })
+        .catch(() => alert('Upload failed.'));
+}
+
+function deleteBpFile(file_id) {
+    if (!confirm('Delete this file?')) return;
+    fetch('/blueprints/files/' + file_id + '/delete/', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrf() },
+    })
+    .then(r => r.json())
+    .then(function(d) {
+        if (d.ok) {
+            var row = document.getElementById('file-row-' + file_id);
+            if (row) row.remove();
+        } else {
+            alert('Delete failed: ' + (d.error || 'Unknown error'));
+        }
+    });
+}
+
+function onNewRevFilesChange() {
+    var input = document.getElementById('newRevFiles');
+    var list  = document.getElementById('newRevFileList');
+    var label = document.getElementById('newRevFileText');
+    if (!input || !list) return;
+    var files = Array.from(input.files);
+    label.textContent = files.length ? files.length + ' file(s) selected' : 'Click to select files';
+    list.innerHTML = files.map(function(f) {
+        var mb = (f.size / (1024 * 1024)).toFixed(2);
+        var size = f.size >= 1024 * 1024 ? mb + ' MB' : Math.round(f.size / 1024) + ' KB';
+        return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fefce8;border:1px solid #fde68a;border-radius:4px;">' +
+               '<i class="fas fa-file" style="color:#d97706;font-size:12px;flex-shrink:0;"></i>' +
+               '<span style="font-size:12px;color:#1e293b;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(f.name) + '</span>' +
+               '<span style="font-size:11px;color:#94a3b8;flex-shrink:0;">' + size + '</span>' +
+               '</div>';
+    }).join('');
+}
+
+function submitNewRevision(bp_id) {
+    var summary = (document.getElementById('newRevSummary') || {}).value || '';
+    var notes   = (document.getElementById('newRevNotes')   || {}).value || '';
+    if (!summary.trim()) {
+        document.getElementById('newRevSummary').style.borderColor = '#dc2626';
+        document.getElementById('newRevSummary').focus();
+        return;
+    }
+
+    var btn = document.getElementById('newRevSubmitBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Submitting...'; }
+
+    var fd = new FormData();
+    fd.append('summary', summary.trim());
+    fd.append('remarks', notes.trim());
+    fd.append('csrfmiddlewaretoken', getCsrf());
+
+    fetch('/blueprints/' + bp_id + '/new-revision/', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.ok) { alert('Failed: ' + (data.error || 'Unknown error')); if (btn) btn.disabled = false; return; }
+
+            var newId = data.new_id;
+            var files = document.getElementById('newRevFiles');
+            var fileList = files ? Array.from(files.files) : [];
+
+            if (fileList.length === 0) {
+                window.location.reload();
+                return;
+            }
+
+            // Upload each file then reload
+            var uploads = fileList.map(function(f) {
+                var ffd = new FormData();
+                ffd.append('file', f);
+                ffd.append('csrfmiddlewaretoken', getCsrf());
+                return fetch('/blueprints/' + newId + '/upload-file/', { method: 'POST', body: ffd });
+            });
+            Promise.all(uploads).then(function() { window.location.reload(); })
+                                .catch(function() { window.location.reload(); });
+        })
+        .catch(function() { alert('Network error. Please try again.'); if (btn) btn.disabled = false; });
+}
+
+function approveBp(bp_id) {
+    var btn = document.getElementById('approveBpBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Approving...'; }
+    var fd = new FormData();
+    fd.append('csrfmiddlewaretoken', getCsrf());
+    fetch('/blueprints/' + bp_id + '/approve/', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.ok) {
+                alert('Failed: ' + (data.error || 'Unknown error'));
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-circle-check" style="color:#94a3b8;"></i> Approve'; }
+                return;
+            }
+            if (data.project_created) {
+                showToast('Blueprint approved. Project created and set to Ongoing.');
+            } else if (data.project_updated) {
+                showToast('Blueprint approved. Project updated to Ongoing.');
+            } else {
+                showToast('Blueprint approved successfully.');
+            }
+            setTimeout(function() { window.location.reload(); }, 1800);
+        })
+        .catch(function() {
+            alert('Network error. Please try again.');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-circle-check" style="color:#94a3b8;"></i> Approve'; }
+        });
+}
+
+function showToast(msg) {
+    var t = document.createElement('div');
+    t.style.cssText = 'position:fixed;bottom:28px;right:28px;background:#1e293b;color:#fff;padding:13px 20px;border-radius:6px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,0.25);z-index:9999;opacity:0;transition:opacity 0.25s;';
+    t.innerHTML = '<i class="fas fa-circle-check" style="color:#C99746;font-size:15px;"></i>' + msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(function() { t.style.opacity = '1'; });
+    setTimeout(function() {
+        t.style.opacity = '0';
+        setTimeout(function() { t.remove(); }, 300);
+    }, 2000);
+}
+
+function getCsrf() {
+    var el = document.querySelector('#csrfHolder [name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+}
+
+function esc(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+</script>
+
+<style>
+.bp-detail-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+}
+.bp-detail-val {
+    font-size: 13px;
+    color: #475569;
+}
+.bp-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 12px;
+}
+</style>
+
+{% endblock %}

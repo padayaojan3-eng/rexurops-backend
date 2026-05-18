@@ -13,6 +13,7 @@ class Task(models.Model):
         ('low', 'Low'),
         ('medium', 'Medium'),
         ('high', 'High'),
+        ('urgent', 'Urgent'),
     ]
 
     blueprint = models.ForeignKey(Blueprint, on_delete=models.CASCADE, related_name='tasks')
@@ -23,6 +24,7 @@ class Task(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
     due_date = models.DateField()
+    is_archived = models.BooleanField(default=False)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
 

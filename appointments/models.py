@@ -15,6 +15,7 @@ class ServiceRequest(models.Model):
     description = models.TextField()
     preferred_date = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    is_archived = models.BooleanField(default=False)
     submitted_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -23,8 +24,8 @@ class ServiceRequest(models.Model):
 
 class Appointment(models.Model):
     STATUS_CHOICES = [
-        ('scheduled', 'Scheduled'),
-        ('rescheduled', 'Rescheduled'),
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
     ]
@@ -33,7 +34,8 @@ class Appointment(models.Model):
     engineer = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True)
     date = models.DateTimeField()
     location = models.CharField(max_length=255)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='scheduled')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    is_archived = models.BooleanField(default=False)
     notes = models.TextField(blank=True)
 
     def __str__(self):

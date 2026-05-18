@@ -1,0 +1,553 @@
+{% extends 'base.html' %}
+{% block title %}Projects - RexurOps{% endblock %}
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header page-header--with-action">
+    <div>
+        <h1 class="page-header__title">Projects</h1>
+        <p class="page-header__subtitle">
+            Track and manage all ongoing engineering projects
+        </p>
+    </div>
+    <button type="button" class="create-btn" id="openProjectModal">
+        <i class="fas fa-plus"></i> Create Project
+    </button>
+</div>
+
+<!-- Stage Filter Cards -->
+<div class="sr-filters">
+    <a href="{% url 'projects_list' %}{% if search_query %}?search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if stage_filter == 'all' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">All</div>
+        <div class="sr-filter-card__count">{{ counts.all }}</div>
+    </a>
+    <a href="{% url 'projects_list' %}?stage=pending{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if stage_filter == 'pending' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Pending</div>
+        <div class="sr-filter-card__count">{{ counts.pending }}</div>
+    </a>
+    <a href="{% url 'projects_list' %}?stage=ongoing{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if stage_filter == 'ongoing' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Ongoing</div>
+        <div class="sr-filter-card__count">{{ counts.ongoing }}</div>
+    </a>
+    <a href="{% url 'projects_list' %}?stage=on_hold{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if stage_filter == 'on_hold' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">On Hold</div>
+        <div class="sr-filter-card__count">{{ counts.on_hold }}</div>
+    </a>
+    <a href="{% url 'projects_list' %}?stage=completed{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if stage_filter == 'completed' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Completed</div>
+        <div class="sr-filter-card__count">{{ counts.completed }}</div>
+    </a>
+    <a href="{% url 'projects_list' %}?archived=1"
+       class="sr-filter-card {% if show_archived %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label"><i class="fas fa-box-archive" style="font-size:11px;margin-right:3px;"></i>Archived</div>
+        <div class="sr-filter-card__count">{% if show_archived %}{{ counts.all }}{% else %}&ndash;{% endif %}</div>
+    </a>
+</div>
+
+<!-- Search Bar -->
+<form method="get" class="sr-search-form">
+    <div class="sr-search-bar">
+        <i class="fas fa-search"></i>
+        <input type="text" name="search" class="sr-search-input"
+               value="{{ search_query }}"
+               placeholder="Search by project name, client, or description...">
+    </div>
+    {% if stage_filter and stage_filter != 'all' %}
+    <input type="hidden" name="stage" value="{{ stage_filter }}">
+    {% endif %}
+</form>
+
+<!-- Project Cards -->
+{% if proj_data %}
+<div class="appt-grid">
+    {% for item in proj_data %}
+    {% with p=item.project %}
+    <div class="proj-card"
+         data-id="{{ p.id }}"
+         data-name="{{ p.name|escapejs }}"
+         data-desc="{{ p.description|escapejs }}"
+         data-stage="{{ p.stage }}"
+         data-progress="{{ item.progress }}"
+         data-start="{{ p.start_date|date:'Y-m-d'|default:'' }}"
+         data-end="{{ p.target_completion|date:'Y-m-d'|default:'' }}"
+         data-workers="{{ item.assigned_worker_ids|join:',' }}">
+
+        <!-- Header: Name + Stage Badge -->
+        <div class="proj-card__header">
+            <div class="proj-card__name">{{ p.name }}</div>
+            {% if p.stage == 'pending' %}
+                <span class="badge badge--amber">pending</span>
+            {% elif p.stage == 'ongoing' %}
+                <span class="badge badge--purple">ongoing</span>
+            {% elif p.stage == 'on_hold' %}
+                <span class="badge badge--gray">on hold</span>
+            {% elif p.stage == 'completed' %}
+                <span class="badge badge--green">completed</span>
+            {% endif %}
+        </div>
+
+        <!-- Client -->
+        <div class="proj-card__client">{{ p.service_request.client.full_name }}</div>
+
+        <!-- Service Tag -->
+        {% with svc=p.service_request.service %}{% if svc %}
+        <div class="proj-card__tags">
+            <span class="service-tag service-tag--{{ svc.name }}">{{ svc.get_name_display }}</span>
+        </div>
+        {% endif %}{% endwith %}
+
+        <!-- Description -->
+        {% if p.description %}
+        <div class="proj-card__desc">{{ p.description|truncatechars:100 }}</div>
+        {% elif p.service_request.description %}
+        <div class="proj-card__desc">{{ p.service_request.description|truncatechars:100 }}</div>
+        {% endif %}
+
+        <!-- Progress -->
+        <div class="proj-card__progress-label">
+            <span>Progress</span>
+            <span class="proj-card__progress-pct">{{ item.progress }}%</span>
+        </div>
+        <div class="proj-card__progress-bar">
+            <div class="proj-card__progress-fill" style="width: {{ item.progress }}%"></div>
+        </div>
+
+        <!-- Workers -->
+        <div class="proj-card__workers">
+            <i class="fas fa-user"></i>
+            {{ item.worker_count }} worker{{ item.worker_count|pluralize }} assigned
+        </div>
+
+        <!-- Dates -->
+        <div class="proj-card__dates">
+            <div class="proj-card__date-col">
+                <div class="proj-card__date-label">Start Date</div>
+                <div class="proj-card__date-val">
+                    {% if p.start_date %}{{ p.start_date|date:"n/j/Y" }}{% else %}—{% endif %}
+                </div>
+            </div>
+            <div class="proj-card__date-col">
+                <div class="proj-card__date-label">Est. Completion</div>
+                <div class="proj-card__date-val">
+                    {% if p.target_completion %}{{ p.target_completion|date:"n/j/Y" }}{% else %}—{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="proj-card__actions">
+            <button type="button" class="proj-card__workers-btn" onclick="openAssignWorkers(this.closest('.proj-card'))">
+                <i class="fas fa-users"></i> Workers
+            </button>
+            <div class="proj-card__icon-actions">
+                <button type="button" class="proj-card__edit-btn" title="Edit" onclick="openEditProject(this.closest('.proj-card'))">
+                    <i class="fas fa-pen"></i>
+                </button>
+                <button type="button" class="proj-card__delete-btn" title="Delete" onclick="deleteProject({{ p.id }})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+
+    </div>
+    {% endwith %}
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-msg">No projects found</div>
+{% endif %}
+
+<!-- ── CREATE PROJECT MODAL ─────────────────────────────────────────────── -->
+<div class="modal-overlay" id="projectModal">
+    <div class="modal">
+
+        <!-- Header -->
+        <div class="modal__header">
+            <div>
+                <div class="modal__title">Create New Project</div>
+                <div class="modal__subtitle">Set up a new project with client and service details</div>
+            </div>
+            <button type="button" class="modal__close" id="closeProjectModal">&times;</button>
+        </div>
+
+        <!-- Client mode tabs -->
+        <div class="modal__tabs">
+            <button type="button" class="modal__tab modal__tab--active" data-tab="existing">Existing Client</button>
+            <button type="button" class="modal__tab" data-tab="new">+ New Client</button>
+        </div>
+
+        <form method="post" action="{% url 'create_project' %}">
+            {% csrf_token %}
+            <input type="hidden" name="client_mode" id="clientMode" value="existing">
+
+            <!-- Existing Client fields -->
+            <div id="existingClientFields">
+                <div class="modal__field">
+                    <label class="modal__label">Client <span class="modal__required">*</span></label>
+                    <select name="client_id" class="modal__select">
+                        <option value="">Select a client</option>
+                        {% for c in modal_clients %}
+                        <option value="{{ c.id }}">{{ c.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- New Client fields -->
+            <div id="newClientFields" style="display:none;">
+                <div class="modal__field">
+                    <label class="modal__label">Full Name <span class="modal__required">*</span></label>
+                    <input type="text" name="new_client_name" class="modal__input" placeholder="e.g., Maria Santos">
+                </div>
+                <div class="modal__field">
+                    <label class="modal__label">Email <span class="modal__required">*</span></label>
+                    <input type="email" name="new_client_email" class="modal__input" placeholder="email@example.com">
+                </div>
+                <div class="modal__row">
+                    <div class="modal__field">
+                        <label class="modal__label">Phone</label>
+                        <input type="text" name="new_client_phone" class="modal__input" placeholder="+63 900 000 0000">
+                    </div>
+                    <div class="modal__field">
+                        <label class="modal__label">Company</label>
+                        <input type="text" name="new_client_company" class="modal__input" placeholder="Company name">
+                    </div>
+                </div>
+                <div class="modal__field">
+                    <label class="modal__label">Address</label>
+                    <input type="text" name="new_client_address" class="modal__input" placeholder="Full address">
+                </div>
+            </div>
+
+            <!-- Shared fields -->
+            <div class="modal__field">
+                <label class="modal__label">Project Name <span class="modal__required">*</span></label>
+                <input type="text" name="project_name" class="modal__input" placeholder="e.g., CCTV System Installation" required>
+            </div>
+
+            <div class="modal__field">
+                <label class="modal__label">Service Type <span class="modal__required">*</span></label>
+                <select name="service_id" class="modal__select" required>
+                    <option value="">Select a service</option>
+                    {% for svc in modal_services %}
+                    <option value="{{ svc.id }}">{{ svc.get_name_display }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="modal__field">
+                <label class="modal__label">Description</label>
+                <textarea name="description" class="modal__textarea" rows="3" placeholder="Project description and scope"></textarea>
+            </div>
+
+            <div class="modal__field">
+                <label class="modal__label">Blueprint (Optional)</label>
+                <select name="blueprint_id" class="modal__select">
+                    <option value="">Select a blueprint or leave empty</option>
+                    {% for bp in modal_blueprints %}
+                    <option value="{{ bp.id }}">{{ bp.title }} (v{{ bp.version }}) — {{ bp.service_request.client.full_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="modal__row">
+                <div class="modal__field">
+                    <label class="modal__label">Start Date <span class="modal__required">*</span></label>
+                    <input type="date" name="start_date" class="modal__input" required>
+                </div>
+                <div class="modal__field">
+                    <label class="modal__label">Estimated End Date</label>
+                    <input type="date" name="end_date" class="modal__input">
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="modal__footer">
+                <button type="button" class="modal__cancel" id="cancelProjectModal">Cancel</button>
+                <button type="submit" class="modal__submit">Create Project</button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+(function () {
+    var overlay = document.getElementById('projectModal');
+    var openBtn = document.getElementById('openProjectModal');
+    var closeBtn = document.getElementById('closeProjectModal');
+    var cancelBtn = document.getElementById('cancelProjectModal');
+    var tabs = document.querySelectorAll('.modal__tab');
+    var existingFields = document.getElementById('existingClientFields');
+    var newFields = document.getElementById('newClientFields');
+    var clientModeInput = document.getElementById('clientMode');
+
+    function openModal() { overlay.classList.add('modal-overlay--active'); }
+    function closeModal() { overlay.classList.remove('modal-overlay--active'); }
+
+    openBtn.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeModal();
+    });
+
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+            tabs.forEach(function (t) { t.classList.remove('modal__tab--active'); });
+            tab.classList.add('modal__tab--active');
+            if (tab.dataset.tab === 'existing') {
+                existingFields.style.display = '';
+                newFields.style.display = 'none';
+                clientModeInput.value = 'existing';
+            } else {
+                existingFields.style.display = 'none';
+                newFields.style.display = '';
+                clientModeInput.value = 'new';
+            }
+        });
+    });
+})();
+</script>
+
+
+<!-- ── ASSIGN WORKERS MODAL ──────────────────────────────────────────────── -->
+<div class="modal-overlay" id="assignWorkersModal" onclick="if(event.target===this)closeAssignWorkers()">
+    <div class="modal" style="max-width:480px;">
+        <div class="modal__header">
+            <div>
+                <div class="modal__title" id="assignWorkersTitle">Assign Workers</div>
+                <div class="modal__subtitle">Select team members to work on this project</div>
+            </div>
+            <button type="button" class="modal__close" onclick="closeAssignWorkers()">&times;</button>
+        </div>
+
+        <div style="margin-bottom:16px;font-size:13px;color:#64748b;">Select workers to assign to this project:</div>
+
+        <div id="workerCheckboxList" style="display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;margin-bottom:20px;">
+            {% for emp in all_employees %}
+            <label class="worker-check-row" data-user-id="{{ emp.user.id }}"
+                   style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border:1.5px solid #e2e8f0;border-radius:6px;cursor:pointer;transition:border-color 0.15s,background 0.15s;">
+                <div>
+                    <div style="font-size:14px;font-weight:600;color:#0f172a;">
+                        {{ emp.user.get_full_name|default:emp.user.username }}
+                    </div>
+                    <div style="font-size:12px;color:#64748b;">{{ emp.specialization|default:emp.get_role_display|default:"—" }}</div>
+                </div>
+                <input type="checkbox" class="worker-checkbox" value="{{ emp.user.id }}"
+                       style="width:20px;height:20px;accent-color:#C99746;cursor:pointer;flex-shrink:0;">
+            </label>
+            {% empty %}
+            <div style="font-size:13px;color:#94a3b8;text-align:center;padding:20px 0;">No employees found.</div>
+            {% endfor %}
+        </div>
+
+        <div class="modal__footer">
+            <button type="button" class="modal__cancel" onclick="closeAssignWorkers()">Cancel</button>
+            <button type="button" class="modal__submit" id="saveWorkersBtn" onclick="saveWorkers()">Save Assignments</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- ── EDIT PROJECT MODAL ────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="editProjectModal" onclick="if(event.target===this)closeEditProject()">
+    <div class="modal" style="max-width:480px;">
+        <div class="modal__header">
+            <div>
+                <div class="modal__title">Edit Project</div>
+                <div class="modal__subtitle">Update project details, status, and progress</div>
+            </div>
+            <button type="button" class="modal__close" onclick="closeEditProject()">&times;</button>
+        </div>
+
+        <div class="modal__field">
+            <label class="modal__label">Project Name <span class="modal__required">*</span></label>
+            <input type="text" id="editProjName" class="modal__input" placeholder="Project name" required>
+        </div>
+
+        <div class="modal__field">
+            <label class="modal__label">Description</label>
+            <textarea id="editProjDesc" class="modal__textarea" rows="3" placeholder="Project description and scope"></textarea>
+        </div>
+
+        <div class="modal__field">
+            <label class="modal__label">Status</label>
+            <select id="editProjStage" class="modal__select">
+                <option value="pending">Pending</option>
+                <option value="ongoing">Ongoing</option>
+                <option value="on_hold">On Hold</option>
+                <option value="completed">Completed</option>
+            </select>
+        </div>
+
+        <div class="modal__field">
+            <label class="modal__label" id="editProjProgressLabel">Progress: 0%</label>
+            <div style="position:relative;padding:4px 0 8px;">
+                <input type="range" id="editProjProgress" min="0" max="100" step="1" value="0"
+                       style="width:100%;accent-color:#C99746;"
+                       oninput="document.getElementById('editProjProgressLabel').textContent='Progress: '+this.value+'%'">
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-top:4px;">
+                    <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal__row">
+            <div class="modal__field">
+                <label class="modal__label">Start Date</label>
+                <input type="date" id="editProjStart" class="modal__input">
+            </div>
+            <div class="modal__field">
+                <label class="modal__label">Estimated End Date</label>
+                <input type="date" id="editProjEnd" class="modal__input">
+            </div>
+        </div>
+
+        <div class="modal__footer">
+            <button type="button" class="modal__cancel" onclick="closeEditProject()">Cancel</button>
+            <button type="button" class="modal__submit" id="updateProjBtn" onclick="saveEditProject()">Update Project</button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden CSRF -->
+<form id="projCsrfHolder" style="display:none;">{% csrf_token %}</form>
+
+<script>
+var _assignProjectId = null;
+var _editProjectId = null;
+
+// ── Assign Workers ────────────────────────────────────────────────────────────
+
+function openAssignWorkers(card) {
+    _assignProjectId = card.dataset.id;
+    document.getElementById('assignWorkersTitle').textContent =
+        'Assign Workers - ' + card.dataset.name;
+
+    var assignedIds = card.dataset.workers
+        ? card.dataset.workers.split(',').map(function(s) { return s.trim(); }).filter(Boolean)
+        : [];
+
+    document.querySelectorAll('.worker-checkbox').forEach(function(cb) {
+        var checked = assignedIds.indexOf(cb.value) !== -1;
+        cb.checked = checked;
+        var row = cb.closest('.worker-check-row');
+        row.style.borderColor = checked ? '#C99746' : '#e2e8f0';
+        row.style.background  = checked ? '#fefce8' : '';
+    });
+
+    document.getElementById('assignWorkersModal').classList.add('modal-overlay--active');
+}
+
+function closeAssignWorkers() {
+    document.getElementById('assignWorkersModal').classList.remove('modal-overlay--active');
+    _assignProjectId = null;
+}
+
+// Toggle highlight when checkbox is clicked
+document.querySelectorAll('.worker-check-row').forEach(function(row) {
+    row.addEventListener('change', function() {
+        var cb = row.querySelector('.worker-checkbox');
+        row.style.borderColor = cb.checked ? '#C99746' : '#e2e8f0';
+        row.style.background  = cb.checked ? '#fefce8' : '';
+    });
+});
+
+function saveWorkers() {
+    if (!_assignProjectId) return;
+    var btn = document.getElementById('saveWorkersBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    var fd = new FormData();
+    fd.append('csrfmiddlewaretoken', getProjCsrf());
+    document.querySelectorAll('.worker-checkbox:checked').forEach(function(cb) {
+        fd.append('worker_ids', cb.value);
+    });
+
+    fetch('/projects/' + _assignProjectId + '/assign-workers/', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.ok) { alert('Failed: ' + (data.error || 'Unknown')); btn.disabled = false; btn.textContent = 'Save Assignments'; return; }
+            closeAssignWorkers();
+            window.location.reload();
+        })
+        .catch(function() { alert('Network error.'); btn.disabled = false; btn.textContent = 'Save Assignments'; });
+}
+
+// ── Edit Project ──────────────────────────────────────────────────────────────
+
+function openEditProject(card) {
+    _editProjectId = card.dataset.id;
+    document.getElementById('editProjName').value    = card.dataset.name;
+    document.getElementById('editProjDesc').value    = card.dataset.desc;
+    document.getElementById('editProjStage').value   = card.dataset.stage;
+    var prog = parseInt(card.dataset.progress) || 0;
+    document.getElementById('editProjProgress').value = prog;
+    document.getElementById('editProjProgressLabel').textContent = 'Progress: ' + prog + '%';
+    document.getElementById('editProjStart').value   = card.dataset.start;
+    document.getElementById('editProjEnd').value     = card.dataset.end;
+    document.getElementById('editProjectModal').classList.add('modal-overlay--active');
+}
+
+function closeEditProject() {
+    document.getElementById('editProjectModal').classList.remove('modal-overlay--active');
+    _editProjectId = null;
+}
+
+function saveEditProject() {
+    if (!_editProjectId) return;
+    var name = document.getElementById('editProjName').value.trim();
+    if (!name) { document.getElementById('editProjName').focus(); return; }
+
+    var btn = document.getElementById('updateProjBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    var fd = new FormData();
+    fd.append('csrfmiddlewaretoken', getProjCsrf());
+    fd.append('name',     name);
+    fd.append('description', document.getElementById('editProjDesc').value.trim());
+    fd.append('stage',    document.getElementById('editProjStage').value);
+    fd.append('progress', document.getElementById('editProjProgress').value);
+    fd.append('start_date', document.getElementById('editProjStart').value);
+    fd.append('end_date',   document.getElementById('editProjEnd').value);
+
+    fetch('/projects/' + _editProjectId + '/edit/', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.ok) { alert('Failed: ' + (data.error || 'Unknown')); btn.disabled = false; btn.textContent = 'Update Project'; return; }
+            closeEditProject();
+            window.location.reload();
+        })
+        .catch(function() { alert('Network error.'); btn.disabled = false; btn.textContent = 'Update Project'; });
+}
+
+// ── Delete Project ────────────────────────────────────────────────────────────
+
+function deleteProject(project_id) {
+    if (!confirm('Delete this project? This cannot be undone.')) return;
+    var fd = new FormData();
+    fd.append('csrfmiddlewaretoken', getProjCsrf());
+    fetch('/projects/' + project_id + '/delete/', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.ok) { window.location.reload(); }
+            else { alert('Delete failed: ' + (data.error || 'Unknown')); }
+        })
+        .catch(function() { alert('Network error.'); });
+}
+
+function getProjCsrf() {
+    var el = document.querySelector('#projCsrfHolder [name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+}
+</script>
+
+{% endblock %}

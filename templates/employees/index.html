@@ -1,0 +1,379 @@
+{% extends 'base.html' %}
+{% block title %}Employees - RexurOps{% endblock %}
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header page-header--with-action">
+    <div>
+        <h1 class="page-header__title">Employees</h1>
+        <p class="page-header__subtitle">Manage employee information and project assignments</p>
+    </div>
+    <button type="button" class="create-btn" id="openEmployeeModal">
+        <i class="fas fa-plus"></i> Add Employee
+    </button>
+</div>
+
+<!-- Role Filter -->
+<div class="task-filters">
+    <a href="{% url 'employees_list' %}{% if search_query %}?search={{ search_query }}{% endif %}"
+       class="task-filter {% if role_filter == 'all' %}task-filter--active{% endif %}">
+        <div class="task-filter__label">All Employees</div>
+        <div class="task-filter__count">{{ counts.all }}</div>
+    </a>
+    <a href="{% url 'employees_list' %}?role=admin{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="task-filter {% if role_filter == 'admin' %}task-filter--active{% endif %}">
+        <div class="task-filter__label">Admins</div>
+        <div class="task-filter__count">{{ counts.admin }}</div>
+    </a>
+    <a href="{% url 'employees_list' %}?role=engineer{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="task-filter {% if role_filter == 'engineer' %}task-filter--active{% endif %}">
+        <div class="task-filter__label">Engineers</div>
+        <div class="task-filter__count">{{ counts.engineer }}</div>
+    </a>
+    <a href="{% url 'employees_list' %}?role=worker{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="task-filter {% if role_filter == 'worker' %}task-filter--active{% endif %}">
+        <div class="task-filter__label">Workers</div>
+        <div class="task-filter__count">{{ counts.worker }}</div>
+    </a>
+</div>
+
+<!-- Search -->
+<form method="get" class="sr-search-form">
+    <div class="sr-search-bar">
+        <i class="fas fa-search"></i>
+        <input type="text" name="search" class="sr-search-input"
+               value="{{ search_query }}"
+               placeholder="Search by name, email, or specialization...">
+    </div>
+    {% if role_filter and role_filter != 'all' %}
+    <input type="hidden" name="role" value="{{ role_filter }}">
+    {% endif %}
+</form>
+
+<!-- Employee Grid -->
+{% if emp_data %}
+<div class="emp-grid">
+    {% for item in emp_data %}
+    <div class="emp-card">
+
+        <div class="emp-card__name">
+            {% if item.profile.role == 'engineer' %}Engr. {% endif %}
+            {{ item.profile.user.get_full_name|default:item.profile.user.username }}
+        </div>
+
+        <div class="emp-card__badges">
+            {% if item.profile.role == 'engineer' %}
+                <span class="badge badge--teal">engineer</span>
+            {% elif item.profile.role == 'worker' %}
+                <span class="badge badge--green">worker</span>
+            {% elif item.profile.role == 'admin' %}
+                <span class="badge badge--blue">admin</span>
+            {% endif %}
+            {% if item.profile.user.is_active %}
+                <span class="badge badge--green">active</span>
+            {% else %}
+                <span class="badge badge--red">inactive</span>
+            {% endif %}
+        </div>
+
+        {% if item.profile.specialization %}
+        <div class="emp-card__info-item">
+            <i class="fas fa-briefcase emp-card__info-icon"></i>
+            <span class="emp-card__specialization">{{ item.profile.specialization }}</span>
+        </div>
+        {% endif %}
+        <div class="emp-card__info-item">
+            <i class="fas fa-envelope emp-card__info-icon"></i>
+            <span class="emp-card__email">{{ item.profile.user.email }}</span>
+        </div>
+        {% if item.profile.phone %}
+        <div class="emp-card__info-item">
+            <i class="fas fa-phone emp-card__info-icon"></i>
+            <span>{{ item.profile.phone }}</span>
+        </div>
+        {% endif %}
+
+        <div class="emp-card__stats">
+            <div class="emp-card__stat-row">
+                <span class="emp-card__stat-label">Assigned Tasks</span>
+                <span class="emp-card__stat-val">{{ item.task_count }}</span>
+            </div>
+            <div class="emp-card__stat-row">
+                <span class="emp-card__stat-label">Assigned Projects</span>
+                <span class="emp-card__stat-val">{{ item.project_count }}</span>
+            </div>
+        </div>
+
+        <div class="emp-card__actions">
+            <button type="button" class="emp-card__projects-btn"
+                onclick="openAssignProjects({{ item.profile.id }}, '{% if item.profile.role == 'engineer' %}Engr. {% endif %}{{ item.profile.user.get_full_name|default:item.profile.user.username|escapejs }}', {{ item.assigned_project_ids|default:'[]' }})">
+                <i class="fas fa-diagram-project"></i> Projects
+            </button>
+            <div class="emp-card__icon-actions">
+                <button type="button" class="proj-card__edit-btn" title="Edit"
+                    onclick="openEditEmployee({{ item.profile.id }}, '{{ item.profile.user.get_full_name|default:item.profile.user.username|escapejs }}', '{{ item.profile.user.email|escapejs }}', '{{ item.profile.phone|escapejs }}', '{{ item.profile.role }}', '{{ item.profile.specialization|escapejs }}', {{ item.profile.user.is_active|yesno:'true,false' }})">
+                    <i class="fas fa-pen"></i>
+                </button>
+                <form method="post" action="{% url 'delete_employee' item.profile.id %}" style="margin:0;"
+                      onsubmit="return confirm('Delete this employee?')">
+                    {% csrf_token %}
+                    <button type="submit" class="proj-card__delete-btn" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-msg">No employees found</div>
+{% endif %}
+
+
+<!-- ── ADD EMPLOYEE MODAL ── -->
+<div class="modal-overlay" id="employeeModal">
+    <div class="modal">
+        <div class="modal__header">
+            <div class="modal__title">Add New Employee</div>
+            <button type="button" class="modal__close" id="closeEmployeeModal">&times;</button>
+        </div>
+        <form method="post" action="{% url 'create_employee' %}">
+            {% csrf_token %}
+            <div class="modal__field">
+                <label class="modal__label">Full Name <span class="modal__required">*</span></label>
+                <input type="text" name="full_name" class="modal__input" placeholder="Name" required>
+            </div>
+            <div class="modal__row">
+                <div class="modal__field">
+                    <label class="modal__label">Email <span class="modal__required">*</span></label>
+                    <input type="email" name="email" class="modal__input" placeholder="juan@rexureng.com" required>
+                </div>
+                <div class="modal__field">
+                    <label class="modal__label">Phone <span class="modal__required">*</span></label>
+                    <input type="text" name="phone" class="modal__input" placeholder="+63 918 123 4567">
+                </div>
+            </div>
+            <div class="modal__row">
+                <div class="modal__field">
+                    <label class="modal__label">Role <span class="modal__required">*</span></label>
+                    <select name="role" class="modal__select" required>
+                        <option value="worker">Worker</option>
+                        <option value="engineer">Engineer</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="modal__field">
+                    <label class="modal__label">Status</label>
+                    <select name="status" class="modal__select">
+                        <option value="active" selected>Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal__field">
+                <label class="modal__label">Specialization</label>
+                <input type="text" name="specialization" class="modal__input"
+                       placeholder="e.g., CCTV and Security Systems">
+            </div>
+            <div class="modal__footer">
+                <button type="button" class="modal__cancel" id="cancelEmployeeModal">Cancel</button>
+                <button type="submit" class="modal__submit">Create Employee</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ── ASSIGN PROJECTS MODAL ── -->
+<div class="modal-overlay" id="modalAssignProjects">
+    <div class="modal" style="max-width:500px;">
+        <div style="padding:24px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;">
+            <div>
+                <div style="font-size:17px;font-weight:800;color:#1e293b;margin-bottom:3px;">Assign Projects</div>
+                <div id="assignProjectsSubtitle" style="font-size:12px;color:#94a3b8;"></div>
+            </div>
+            <button onclick="closeAssignProjects()" style="background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer;">&times;</button>
+        </div>
+        <form id="formAssignProjects" method="post">
+            {% csrf_token %}
+            <div style="padding:16px 28px;max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;" id="projectCheckboxList">
+                {% for proj in all_projects %}
+                <label style="display:flex;align-items:flex-start;justify-content:space-between;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color 0.15s;"
+                       class="proj-assign-item"
+                       data-proj-id="{{ proj.id }}">
+                    <div>
+                        <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:2px;">{{ proj.name }}</div>
+                        <div style="font-size:12px;color:#64748b;margin-bottom:6px;">{{ proj.service_request.client.full_name }}</div>
+                        <div style="display:flex;gap:6px;">
+                            <span class="badge {% if proj.stage == 'ongoing' %}badge--green{% elif proj.stage == 'pending' %}badge--amber{% elif proj.stage == 'completed' %}badge--blue{% else %}badge--red{% endif %}" style="font-size:10px;">{{ proj.stage }}</span>
+                            <span class="badge" style="font-size:10px;background:#f1f5f9;color:#475569;">{{ proj.service_request.service.name }}</span>
+                        </div>
+                    </div>
+                    <input type="checkbox" name="project_ids" value="{{ proj.id }}"
+                           style="width:18px;height:18px;accent-color:#C99746;margin-top:2px;cursor:pointer;"
+                           class="proj-checkbox">
+                </label>
+                {% empty %}
+                <div style="text-align:center;color:#94a3b8;padding:24px;">No projects available.</div>
+                {% endfor %}
+            </div>
+            <div style="padding:16px 28px 24px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid #f1f5f9;">
+                <button type="button" onclick="closeAssignProjects()"
+                    style="padding:10px 20px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">
+                    Cancel
+                </button>
+                <button type="submit"
+                    style="padding:10px 20px;background:#C99746;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;">
+                    Save Assignments
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ── EDIT EMPLOYEE MODAL ── -->
+<div class="modal-overlay" id="modalEditEmployee">
+    <div class="modal" style="max-width:460px;">
+        <div style="padding:24px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;">
+            <div style="font-size:17px;font-weight:800;color:#1e293b;">Edit Employee</div>
+            <button onclick="closeEditEmployee()" style="background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer;">&times;</button>
+        </div>
+        <form id="formEditEmployee" method="post">
+            {% csrf_token %}
+            <div style="padding:20px 28px 24px;display:flex;flex-direction:column;gap:14px;">
+
+                <div>
+                    <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Full Name <span style="color:#C99746;">*</span></label>
+                    <input type="text" name="full_name" id="editFullName" required
+                        style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;"
+                        onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Email <span style="color:#C99746;">*</span></label>
+                        <input type="email" name="email" id="editEmail" required
+                            style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;"
+                            onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Phone <span style="color:#C99746;">*</span></label>
+                        <input type="text" name="phone" id="editPhone"
+                            style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;"
+                            onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'">
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Role <span style="color:#C99746;">*</span></label>
+                        <select name="role" id="editRole"
+                            style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;cursor:pointer;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 12 12%27%3E%3Cpath fill=%27%2394a3b8%27 d=%27M6 8L1 3h10z%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;"
+                            onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'">
+                            <option value="worker">Worker</option>
+                            <option value="engineer">Engineer</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Status</label>
+                        <select name="status" id="editStatus"
+                            style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;cursor:pointer;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 12 12%27%3E%3Cpath fill=%27%2394a3b8%27 d=%27M6 8L1 3h10z%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;"
+                            onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Specialization</label>
+                    <input type="text" name="specialization" id="editSpecialization"
+                        style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;"
+                        onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'">
+                </div>
+
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px;">
+                    <button type="button" onclick="closeEditEmployee()"
+                        style="padding:10px 20px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        style="padding:10px 20px;background:#C99746;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;">
+                        Update Employee
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script>
+// ── Add Employee Modal ──
+(function () {
+    var overlay = document.getElementById('employeeModal');
+    document.getElementById('openEmployeeModal').addEventListener('click', function() { overlay.classList.add('modal-overlay--active'); });
+    document.getElementById('closeEmployeeModal').addEventListener('click', function() { overlay.classList.remove('modal-overlay--active'); });
+    document.getElementById('cancelEmployeeModal').addEventListener('click', function() { overlay.classList.remove('modal-overlay--active'); });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.classList.remove('modal-overlay--active'); });
+})();
+
+// ── Assign Projects Modal ──
+function openAssignProjects(profileId, name, assignedIds) {
+    document.getElementById('assignProjectsSubtitle').textContent = 'Select projects to assign to ' + name + ':';
+    document.getElementById('formAssignProjects').action = '/employees/' + profileId + '/assign-projects/';
+
+    // Check the already-assigned projects
+    document.querySelectorAll('.proj-checkbox').forEach(function(cb) {
+        cb.checked = assignedIds.indexOf(parseInt(cb.value)) !== -1;
+    });
+
+    // Highlight checked items
+    updateAssignHighlight();
+    document.getElementById('modalAssignProjects').classList.add('modal-overlay--active');
+}
+
+function updateAssignHighlight() {
+    document.querySelectorAll('.proj-assign-item').forEach(function(label) {
+        var cb = label.querySelector('.proj-checkbox');
+        label.style.borderColor = cb.checked ? '#C99746' : '#e2e8f0';
+        label.style.background  = cb.checked ? '#fdf8f0' : '#ffffff';
+    });
+}
+
+document.querySelectorAll('.proj-checkbox').forEach(function(cb) {
+    cb.addEventListener('change', updateAssignHighlight);
+});
+
+function closeAssignProjects() {
+    document.getElementById('modalAssignProjects').classList.remove('modal-overlay--active');
+}
+document.getElementById('modalAssignProjects').addEventListener('click', function(e) {
+    if (e.target === this) closeAssignProjects();
+});
+
+// ── Edit Employee Modal ──
+function openEditEmployee(profileId, fullName, email, phone, role, specialization, isActive) {
+    document.getElementById('formEditEmployee').action = '/employees/' + profileId + '/edit/';
+    document.getElementById('editFullName').value       = fullName;
+    document.getElementById('editEmail').value          = email;
+    document.getElementById('editPhone').value          = phone;
+    document.getElementById('editRole').value           = role;
+    document.getElementById('editStatus').value         = isActive ? 'active' : 'inactive';
+    document.getElementById('editSpecialization').value = specialization;
+    document.getElementById('modalEditEmployee').classList.add('modal-overlay--active');
+}
+
+function closeEditEmployee() {
+    document.getElementById('modalEditEmployee').classList.remove('modal-overlay--active');
+}
+document.getElementById('modalEditEmployee').addEventListener('click', function(e) {
+    if (e.target === this) closeEditEmployee();
+});
+</script>
+
+{% endblock %}

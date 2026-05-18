@@ -1,0 +1,430 @@
+{% extends 'base.html' %}
+{% block title %}Service Requests - RexurOps{% endblock %}
+{% block content %}
+
+<!-- Page Header -->
+<div class="sr-page-header">
+    <div>
+        <h1 class="sr-page-header__title">Service Requests</h1>
+        <p class="sr-page-header__subtitle">Manage all incoming service requests from clients</p>
+    </div>
+    <a href="{% url 'service_requests' %}" class="refresh-btn">
+        <i class="fas fa-arrows-rotate"></i> Refresh
+    </a>
+</div>
+
+<!-- Status Filter Cards -->
+<div class="sr-filters">
+    <a href="{% url 'service_requests' %}{% if search_query %}?search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'all' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">All Requests</div>
+        <div class="sr-filter-card__count">{{ counts.all }}</div>
+    </a>
+    <a href="{% url 'service_requests' %}?status=pending{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'pending' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Pending</div>
+        <div class="sr-filter-card__count">{{ counts.pending }}</div>
+    </a>
+    <a href="{% url 'service_requests' %}?status=reviewed{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'reviewed' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">In Review</div>
+        <div class="sr-filter-card__count">{{ counts.reviewed }}</div>
+    </a>
+    <a href="{% url 'service_requests' %}?status=approved{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'approved' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Approved</div>
+        <div class="sr-filter-card__count">{{ counts.approved }}</div>
+    </a>
+    <a href="{% url 'service_requests' %}?status=rejected{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'rejected' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Rejected</div>
+        <div class="sr-filter-card__count">{{ counts.rejected }}</div>
+    </a>
+</div>
+
+<!-- Search Bar -->
+<form method="get" class="sr-search-form">
+    <div class="sr-search-bar">
+        <i class="fas fa-search"></i>
+        <input type="text" name="search" class="sr-search-input"
+               value="{{ search_query }}"
+               placeholder="Search by client name, email, service type, or description...">
+    </div>
+    {% if status_filter and status_filter != 'all' %}
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    {% endif %}
+</form>
+
+<!-- Results -->
+<div class="sr-list-header">{{ request_count }} Request{{ request_count|pluralize }}</div>
+
+<div class="sr-list">
+    {% for req in sr_list %}
+    {% with appt=req.appointments.first %}
+    <div class="sr-card">
+        <div class="sr-card__header">
+            <div class="sr-card__title-row">
+                <span class="sr-card__client">{{ req.client.full_name }}</span>
+                {% if req.status == 'pending' %}
+                    <span class="badge badge--amber">pending</span>
+                {% elif req.status == 'reviewed' %}
+                    <span class="badge badge--blue">in review</span>
+                {% elif req.status == 'approved' %}
+                    <span class="badge badge--green">approved</span>
+                {% elif req.status == 'rejected' %}
+                    <span class="badge badge--red">rejected</span>
+                {% endif %}
+            </div>
+            <button class="sr-card__view-btn" title="View details"
+                onclick="openDetail({
+                    id: {{ req.id }},
+                    client: '{{ req.client.full_name|escapejs }}',
+                    service: '{{ req.service.get_name_display|escapejs }}',
+                    email: '{{ req.client.email|escapejs }}',
+                    phone: '{{ req.client.phone|escapejs }}',
+                    address: '{{ req.client.address|escapejs }}',
+                    preferred_date: '{{ req.preferred_date|date:"N j, Y" }}',
+                    description: '{{ req.description|escapejs }}',
+                    status: '{{ req.status }}',
+                    submitted: '{{ req.submitted_at|date:"N j, Y, g:i A" }}',
+                    appt_date: '{% if appt %}{{ appt.date|date:"N j, Y" }}{% endif %}',
+                    appt_time: '{% if appt %}{{ appt.date|date:"g:i A" }}{% endif %}',
+                    appt_engineer: '{% if appt %}{{ appt.engineer.get_full_name|default:appt.engineer.username|escapejs }}{% else %}—{% endif %}',
+                    appt_location: '{% if appt %}{{ appt.location|escapejs }}{% else %}—{% endif %}',
+                    appt_status: '{% if appt %}{{ appt.get_status_display }}{% else %}—{% endif %}',
+                    appt_date_raw: '{% if appt %}{{ appt.date|date:"Y-m-d" }}{% endif %}',
+                    appt_time_raw: '{% if appt %}{{ appt.date|date:"H:i" }}{% endif %}',
+                    appt_engineer_id: '{% if appt %}{{ appt.engineer.id|default:"" }}{% endif %}',
+                    appt_location_raw: '{% if appt %}{{ appt.location|escapejs }}{% endif %}',
+                    appt_notes_raw: '{% if appt %}{{ appt.notes|escapejs }}{% endif %}'
+                })">
+                <i class="fas fa-eye"></i>
+            </button>
+        </div>
+
+        <div class="sr-card__body">
+            <div class="sr-card__meta">
+                <div class="sr-card__meta-line">
+                    <span class="sr-card__meta-key">Service: </span>
+                    <span class="sr-card__meta-val">{{ req.service.get_name_display }}</span>
+                </div>
+                <div class="sr-card__meta-line">
+                    <span class="sr-card__meta-key">Email: </span>
+                    <span class="sr-card__meta-val">{{ req.client.email }}</span>
+                </div>
+            </div>
+            <div class="sr-card__meta sr-card__meta--right">
+                <div class="sr-card__meta-line">
+                    <span class="sr-card__meta-key">Preferred Date: </span>
+                    <span class="sr-card__meta-val">{{ req.preferred_date|date:"N j, Y" }}</span>
+                </div>
+                <div class="sr-card__meta-line">
+                    <span class="sr-card__meta-key">Phone: </span>
+                    <span class="sr-card__meta-val">{{ req.client.phone }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="sr-card__desc">{{ req.description }}</div>
+        <div class="sr-card__submitted">Submitted: {{ req.submitted_at|date:"N j, Y, g:i A" }}</div>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div class="empty-msg">No service requests found</div>
+    {% endfor %}
+</div>
+
+
+<!-- ── SERVICE REQUEST DETAIL MODAL ── -->
+<div id="modalDetail" class="modal-overlay" onclick="if(event.target===this)closeDetail()" style="cursor:default">
+    <div class="modal" style="max-width:520px;">
+        <div class="modal__header">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span class="modal__title">Service Request Details</span>
+                <span id="detailBadge" class="badge"></span>
+            </div>
+            <button class="modal__close" onclick="closeDetail()">&times;</button>
+        </div>
+        <div style="padding:0 28px 4px;font-size:12px;color:#94a3b8;">View and manage service request information</div>
+
+        <div class="modal__body" style="padding:20px 28px 24px;">
+
+            <!-- Client/service fields (hidden when approved) -->
+            <div id="detailFields" style="display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;margin-bottom:16px;">
+                <div>
+                    <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Client Name</div>
+                    <div id="detailClient" style="font-size:13px;font-weight:600;color:#1e293b;"></div>
+                </div>
+                <div>
+                    <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Service Type</div>
+                    <div id="detailService" style="font-size:13px;font-weight:600;color:#1e293b;"></div>
+                </div>
+                <div>
+                    <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Email</div>
+                    <div id="detailEmail" style="font-size:13px;color:#475569;"></div>
+                </div>
+                <div>
+                    <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Phone</div>
+                    <div id="detailPhone" style="font-size:13px;color:#475569;"></div>
+                </div>
+                <div style="grid-column:1/-1;">
+                    <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Address</div>
+                    <div id="detailAddress" style="font-size:13px;color:#475569;"></div>
+                </div>
+                <div>
+                    <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Preferred Schedule</div>
+                    <div id="detailDate" style="font-size:13px;color:#475569;"></div>
+                </div>
+            </div>
+
+            <!-- Description (hidden when approved) -->
+            <div id="detailDescBlock" style="margin-bottom:16px;">
+                <div style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Description</div>
+                <div id="detailDesc" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:12px;font-size:13px;color:#475569;line-height:1.6;"></div>
+            </div>
+
+            <!-- Approved state: appointment summary -->
+            <div id="detailApproved" style="display:none;margin-bottom:16px;">
+                <!-- Summary card -->
+                <div style="border:1px solid #e2e8f0;border-radius:5px;overflow:hidden;margin-bottom:12px;">
+                    <div style="background:#f8fafc;padding:10px 16px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;border-bottom:1px solid #e2e8f0;">
+                        Client &amp; Request
+                    </div>
+                    <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;">
+                        <div>
+                            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">Client</div>
+                            <div id="apptClient" style="font-size:13px;font-weight:600;color:#1e293b;"></div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">Service</div>
+                            <div id="apptService" style="font-size:13px;font-weight:600;color:#1e293b;"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Appointment details card -->
+                <div style="border:1px solid #e2e8f0;border-radius:5px;overflow:hidden;margin-bottom:12px;">
+                    <div style="background:#f8fafc;padding:10px 16px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;border-bottom:1px solid #e2e8f0;">
+                        Scheduled Appointment
+                    </div>
+                    <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;">
+                        <div>
+                            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">Date</div>
+                            <div id="apptDate" style="font-size:13px;font-weight:600;color:#1e293b;"></div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">Time</div>
+                            <div id="apptTime" style="font-size:13px;font-weight:600;color:#1e293b;"></div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">Assigned Engineer</div>
+                            <div id="apptEngineer" style="font-size:13px;font-weight:600;color:#C99746;"></div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">Location</div>
+                            <div id="apptLocation" style="font-size:13px;color:#475569;"></div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">Appointment Status</div>
+                            <div id="apptStatus" style="font-size:13px;color:#475569;"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Actions -->
+                <div style="display:flex;gap:8px;">
+                    <button onclick="openScheduleEdit()" type="button"
+                        style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px;background:#C99746;border:none;border-radius:4px;font-size:13px;font-weight:600;color:#fff;cursor:pointer;transition:background 0.15s;"
+                        onmouseover="this.style.background='#a07830'" onmouseout="this.style.background='#C99746'">
+                        <i class="fas fa-pen"></i> Edit Schedule
+                    </button>
+                    <a href="{% url 'appointments_list' %}"
+                       style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:13px;font-weight:600;color:#475569;text-decoration:none;transition:background 0.15s;"
+                       onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">
+                        <i class="fas fa-calendar-days"></i> View Appointments
+                    </a>
+                </div>
+            </div>
+
+            <!-- Actions (hidden when approved or rejected) -->
+            <div id="detailActions">
+                <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">Actions</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <form id="formReview" method="post" style="margin:0;">
+                        {% csrf_token %}
+                        <button type="submit" style="padding:7px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:13px;font-weight:600;color:#475569;cursor:pointer;transition:background 0.15s;"
+                            onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">
+                            Mark as In Review
+                        </button>
+                    </form>
+                    <button onclick="openSchedule()" style="padding:7px 14px;background:#C99746;color:#fff;border:none;border-radius:4px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background 0.15s;"
+                        onmouseover="this.style.background='#a07830'" onmouseout="this.style.background='#C99746'">
+                        <i class="fas fa-calendar-check"></i> Schedule Appointment
+                    </button>
+                    <form id="formReject" method="post" style="margin:0;">
+                        {% csrf_token %}
+                        <button type="submit" style="padding:7px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;font-size:13px;font-weight:600;color:#dc2626;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-circle-xmark"></i> Reject
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="detailSubmitted" style="margin-top:16px;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:12px;"></div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ── SCHEDULE APPOINTMENT MODAL ── -->
+<div id="modalSchedule" class="modal-overlay" onclick="if(event.target===this)closeSchedule()" style="cursor:default">
+    <div class="modal" style="max-width:460px;">
+
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;">
+            <div>
+                <div style="font-size:16px;font-weight:700;color:#1e293b;letter-spacing:-0.1px;">Schedule Appointment</div>
+                <div style="font-size:12px;color:#94a3b8;margin-top:3px;">Set up a meeting with the client</div>
+            </div>
+            <button onclick="closeSchedule()" style="background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer;line-height:1;padding:2px 4px;transition:color 0.15s;"
+                onmouseover="this.style.color='#1e293b'" onmouseout="this.style.color='#94a3b8'">&times;</button>
+        </div>
+
+        <div style="border-top:1px solid #f1f5f9;margin:16px 0;"></div>
+
+        <form id="formSchedule" method="post">
+            {% csrf_token %}
+            <div style="display:flex;flex-direction:column;gap:14px;">
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">
+                            Date <span style="color:#C99746;">*</span>
+                        </label>
+                        <input type="date" name="appt_date" required class="modal__input">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">
+                            Time <span style="color:#C99746;">*</span>
+                        </label>
+                        <input type="time" name="appt_time" required class="modal__input">
+                    </div>
+                </div>
+
+                <div>
+                    <label style="display:block;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">
+                        Assigned Engineer <span style="color:#C99746;">*</span>
+                    </label>
+                    <select name="engineer_id" required class="modal__select">
+                        <option value="">Select engineer</option>
+                        {% for eng in modal_engineers %}
+                        <option value="{{ eng.user.id }}">{{ eng.user.get_full_name|default:eng.user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label style="display:block;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Location</label>
+                    <input type="text" name="location" placeholder="e.g. Client site, Office" class="modal__input">
+                </div>
+
+                <div>
+                    <label style="display:block;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Purpose</label>
+                    <input type="text" name="notes" value="Blueprint discussion and site inspection" class="modal__input">
+                </div>
+
+                <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:4px;border-top:1px solid #f1f5f9;margin-top:4px;">
+                    <button type="button" onclick="closeSchedule()" class="modal__cancel">Cancel</button>
+                    <button type="submit" class="modal__submit">
+                        <i class="fas fa-circle-check"></i> Confirm Appointment
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+var currentSrId = null;
+var currentApptData = {};
+
+function openDetail(data) {
+    currentSrId = data.id;
+    currentApptData = data;
+
+    document.getElementById('detailClient').textContent  = data.client;
+    document.getElementById('detailService').textContent = data.service;
+    document.getElementById('detailEmail').textContent   = data.email;
+    document.getElementById('detailPhone').textContent   = data.phone;
+    document.getElementById('detailAddress').textContent = data.address;
+    document.getElementById('detailDate').textContent    = data.preferred_date;
+    document.getElementById('detailDesc').textContent    = data.description;
+    document.getElementById('detailSubmitted').textContent = 'Submitted: ' + data.submitted;
+
+    var badge = document.getElementById('detailBadge');
+    var badgeMap = {
+        pending:  ['badge--amber', 'pending'],
+        reviewed: ['badge--blue',  'in review'],
+        approved: ['badge--green', 'approved'],
+        rejected: ['badge--red',   'rejected'],
+    };
+    badge.className = 'badge ' + (badgeMap[data.status] ? badgeMap[data.status][0] : '');
+    badge.textContent = badgeMap[data.status] ? badgeMap[data.status][1] : data.status;
+
+    document.getElementById('formReview').action   = '/service-requests/' + data.id + '/reviewed/';
+    document.getElementById('formReject').action   = '/service-requests/' + data.id + '/reject/';
+    document.getElementById('formSchedule').action = '/service-requests/' + data.id + '/schedule/';
+
+    var isApproved  = data.status === 'approved';
+    var isClosedOut = data.status === 'approved' || data.status === 'rejected';
+
+    document.getElementById('detailFields').style.display    = isApproved ? 'none' : 'grid';
+    document.getElementById('detailDescBlock').style.display = isApproved ? 'none' : 'block';
+    document.getElementById('detailApproved').style.display  = isApproved ? 'block' : 'none';
+    document.getElementById('detailActions').style.display   = isClosedOut ? 'none' : 'block';
+
+    if (isApproved) {
+        document.getElementById('apptClient').textContent   = data.client;
+        document.getElementById('apptService').textContent  = data.service;
+        document.getElementById('apptDate').textContent     = data.appt_date || '—';
+        document.getElementById('apptTime').textContent     = data.appt_time || '—';
+        document.getElementById('apptEngineer').textContent = data.appt_engineer || '—';
+        document.getElementById('apptLocation').textContent = data.appt_location || '—';
+        document.getElementById('apptStatus').textContent   = data.appt_status || '—';
+    }
+
+    document.getElementById('modalDetail').classList.add('modal-overlay--active');
+}
+
+function closeDetail() {
+    document.getElementById('modalDetail').classList.remove('modal-overlay--active');
+}
+
+function openSchedule() {
+    // Clear fields for a fresh schedule
+    document.querySelector('#formSchedule input[name="appt_date"]').value = '';
+    document.querySelector('#formSchedule input[name="appt_time"]').value = '';
+    document.querySelector('#formSchedule input[name="location"]').value  = '';
+    document.querySelector('#formSchedule input[name="notes"]').value     = 'Blueprint discussion and site inspection';
+    document.querySelector('#formSchedule select[name="engineer_id"]').value = '';
+    document.getElementById('modalSchedule').classList.add('modal-overlay--active');
+}
+
+function openScheduleEdit() {
+    // Pre-fill with existing appointment values
+    var d = currentApptData;
+    document.querySelector('#formSchedule input[name="appt_date"]').value = d.appt_date_raw || '';
+    document.querySelector('#formSchedule input[name="appt_time"]').value = d.appt_time_raw || '';
+    document.querySelector('#formSchedule input[name="location"]').value  = d.appt_location_raw || '';
+    document.querySelector('#formSchedule input[name="notes"]').value     = d.appt_notes_raw || '';
+    var engSel = document.querySelector('#formSchedule select[name="engineer_id"]');
+    for (var i = 0; i < engSel.options.length; i++) {
+        engSel.options[i].selected = (engSel.options[i].value === String(d.appt_engineer_id));
+    }
+    document.getElementById('modalSchedule').classList.add('modal-overlay--active');
+}
+
+function closeSchedule() {
+    document.getElementById('modalSchedule').classList.remove('modal-overlay--active');
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,405 @@
+{% extends 'base.html' %}
+{% block title %}Clients - RexurOps{% endblock %}
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header page-header--with-action">
+    <div>
+        <h1 class="page-header__title">Clients</h1>
+        <p class="page-header__subtitle">Manage client records and view service history</p>
+    </div>
+    <button type="button" class="create-btn" id="openClientModal">
+        <i class="fas fa-plus"></i> Add Client
+    </button>
+</div>
+
+<!-- Stats -->
+<div class="client-stats">
+    <div class="client-stat">
+        <div class="client-stat__label">Total Clients</div>
+        <div class="client-stat__count">{{ counts.total_clients }}</div>
+    </div>
+    <div class="client-stat">
+        <div class="client-stat__label">Active Clients</div>
+        <div class="client-stat__count">{{ counts.active_clients }}</div>
+    </div>
+    <div class="client-stat">
+        <div class="client-stat__label">Total Requests</div>
+        <div class="client-stat__count">{{ counts.total_requests }}</div>
+    </div>
+    <div class="client-stat">
+        <div class="client-stat__label">Total Projects</div>
+        <div class="client-stat__count">{{ counts.total_projects }}</div>
+    </div>
+</div>
+
+<!-- Search -->
+<form method="get" class="sr-search-form">
+    <div class="sr-search-bar">
+        <i class="fas fa-search"></i>
+        <input type="text" name="search" class="sr-search-input"
+               value="{{ search_query }}"
+               placeholder="Search clients by name, email, or company...">
+    </div>
+</form>
+
+<!-- Client List -->
+<div class="client-list-container">
+    <div class="client-list__header">{{ client_count }} Client{{ client_count|pluralize }}</div>
+
+    {% if client_data %}
+    {% for item in client_data %}
+    <div class="client-row">
+        <div class="client-row__top">
+            <div class="client-row__name-block">
+                <span class="client-row__name">{{ item.client.full_name }}</span>
+                <span class="badge badge--green">active</span>
+            </div>
+            <div class="client-row__actions">
+                <button type="button" class="client-row__view-btn"
+                    onclick="openViewClient(
+                        '{{ item.client.full_name|escapejs }}',
+                        '{{ item.client.company|escapejs }}',
+                        '{{ item.client.phone|escapejs }}',
+                        '{{ item.client.email|escapejs }}',
+                        '{{ item.client.address|escapejs }}',
+                        'client-requests-{{ item.client.id }}',
+                        'client-projects-{{ item.client.id }}'
+                    )">View Details</button>
+                <button type="button" class="client-row__icon-btn" title="Edit"
+                    onclick="openEditClient(
+                        {{ item.client.id }},
+                        '{{ item.client.full_name|escapejs }}',
+                        '{{ item.client.company|escapejs }}',
+                        '{{ item.client.email|escapejs }}',
+                        '{{ item.client.phone|escapejs }}',
+                        '{{ item.client.address|escapejs }}'
+                    )">
+                    <i class="fas fa-pen"></i>
+                </button>
+                <form method="post" action="{% url 'delete_client' item.client.id %}" style="margin:0;"
+                      onsubmit="return confirm('Delete {{ item.client.full_name }}?')">
+                    {% csrf_token %}
+                    <button type="submit" class="client-row__icon-btn client-row__icon-btn--red" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="client-row__info">
+            <div class="client-row__info-col">
+                {% if item.client.company %}
+                <div class="client-row__info-item">
+                    <i class="fas fa-building client-row__info-icon"></i>
+                    <span>{{ item.client.company }}</span>
+                </div>
+                {% endif %}
+                <div class="client-row__info-item">
+                    <i class="fas fa-phone client-row__info-icon"></i>
+                    <span>{{ item.client.phone }}</span>
+                </div>
+            </div>
+            <div class="client-row__info-col">
+                <div class="client-row__info-item">
+                    <i class="fas fa-envelope client-row__info-icon"></i>
+                    <span>{{ item.client.email }}</span>
+                </div>
+                <div class="client-row__info-item">
+                    <i class="fas fa-location-dot client-row__info-icon"></i>
+                    <span>{{ item.client.address }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="client-row__footer">
+            <span class="client-row__stat">{{ item.request_count }} request{{ item.request_count|pluralize }}</span>
+            <span class="client-row__stat">{{ item.project_count }} project{{ item.project_count|pluralize }}</span>
+        </div>
+
+        <!-- Hidden tab data -->
+        <div id="client-requests-{{ item.client.id }}" style="display:none;">
+            {% for req in item.requests %}
+            <div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <span style="font-size:14px;font-weight:700;color:#1e293b;">{{ req.service.get_name_display }}</span>
+                    <span class="badge {% if req.status == 'approved' %}badge--green{% elif req.status == 'pending' %}badge--amber{% elif req.status == 'reviewed' %}badge--blue{% else %}badge--red{% endif %}">{{ req.status }}</span>
+                </div>
+                <p style="font-size:13px;color:#64748b;line-height:1.5;margin-bottom:8px;">{{ req.description }}</p>
+                <div style="font-size:11px;color:#94a3b8;">
+                    Preferred: {{ req.preferred_date|date:"n/j/Y" }} &nbsp;·&nbsp; Submitted: {{ req.submitted_at|date:"n/j/Y" }}
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">No requests yet.</div>
+            {% endfor %}
+        </div>
+
+        <div id="client-projects-{{ item.client.id }}" style="display:none;">
+            {% for proj in item.projects %}
+            <div style="border:1px solid #e2e8f0;border-radius:8px;padding:14px 16px;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <span style="font-size:14px;font-weight:700;color:#1e293b;">{{ proj.name }}</span>
+                    <span class="badge {% if proj.stage == 'ongoing' %}badge--green{% elif proj.stage == 'pending' %}badge--amber{% elif proj.stage == 'completed' %}badge--blue{% else %}badge--red{% endif %}">{{ proj.stage }}</span>
+                </div>
+                <div style="font-size:11px;color:#94a3b8;">
+                    Service: {{ proj.service_request.service.get_name_display }}
+                    {% if proj.start_date %}&nbsp;·&nbsp; Started: {{ proj.start_date|date:"n/j/Y" }}{% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div style="text-align:center;color:#94a3b8;padding:20px;font-size:13px;">No projects yet.</div>
+            {% endfor %}
+        </div>
+
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-msg" style="padding:32px 0;">No clients found</div>
+    {% endif %}
+</div>
+
+
+<!-- ── VIEW CLIENT DETAILS MODAL ── -->
+<div class="modal-overlay" id="modalViewClient" onclick="if(event.target===this)closeViewClient()">
+    <div class="modal" style="max-width:480px;">
+
+        <!-- Header -->
+        <div style="padding:24px 28px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f1f5f9;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span id="viewClientName" style="font-size:17px;font-weight:800;color:#1e293b;"></span>
+                <span class="badge badge--green">active</span>
+            </div>
+            <button onclick="closeViewClient()" style="background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer;">&times;</button>
+        </div>
+
+        <!-- Contact Info -->
+        <div style="padding:16px 28px;">
+            <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:12px;">Contact Information</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div style="display:flex;align-items:flex-start;gap:8px;">
+                    <i class="fas fa-building" style="color:#C99746;margin-top:2px;font-size:13px;"></i>
+                    <span id="viewClientCompany" style="font-size:13px;color:#475569;"></span>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:8px;">
+                    <i class="fas fa-envelope" style="color:#C99746;margin-top:2px;font-size:13px;"></i>
+                    <span id="viewClientEmail" style="font-size:13px;color:#475569;word-break:break-all;"></span>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:8px;">
+                    <i class="fas fa-phone" style="color:#C99746;margin-top:2px;font-size:13px;"></i>
+                    <span id="viewClientPhone" style="font-size:13px;color:#475569;"></span>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:8px;">
+                    <i class="fas fa-location-dot" style="color:#C99746;margin-top:2px;font-size:13px;"></i>
+                    <span id="viewClientAddress" style="font-size:13px;color:#475569;"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div style="padding:0 28px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+                <button id="tabRequests" onclick="switchClientTab('requests')"
+                    style="padding:10px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:#f8fafc;color:#64748b;transition:all 0.15s;">
+                    Requests (<span id="viewReqCount">0</span>)
+                </button>
+                <button id="tabProjects" onclick="switchClientTab('projects')"
+                    style="padding:10px;font-size:13px;font-weight:700;border:none;cursor:pointer;background:#fff;color:#64748b;border-left:1px solid #e2e8f0;transition:all 0.15s;">
+                    Projects (<span id="viewProjCount">0</span>)
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="viewTabContent" style="padding:14px 28px 24px;max-height:260px;overflow-y:auto;"></div>
+    </div>
+</div>
+
+
+<!-- ── EDIT CLIENT MODAL ── -->
+<div class="modal-overlay" id="modalEditClient" onclick="if(event.target===this)closeEditClient()">
+    <div class="modal" style="max-width:460px;">
+        <div style="padding:24px 28px 0;display:flex;align-items:flex-start;justify-content:space-between;">
+            <div>
+                <div style="font-size:17px;font-weight:800;color:#1e293b;margin-bottom:2px;">Edit Client</div>
+                <div style="font-size:12px;color:#94a3b8;">Update client information and contact details</div>
+            </div>
+            <button onclick="closeEditClient()" style="background:none;border:none;font-size:18px;color:#94a3b8;cursor:pointer;">&times;</button>
+        </div>
+
+        <form id="formEditClient" method="post">
+            {% csrf_token %}
+            <div style="padding:20px 28px 24px;display:flex;flex-direction:column;gap:14px;">
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Full Name <span style="color:#C99746;">*</span></label>
+                        <input type="text" name="full_name" id="editClientName" required
+                            style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;"
+                            onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Company <span style="color:#C99746;">*</span></label>
+                        <input type="text" name="company" id="editClientCompany"
+                            style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;"
+                            onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'">
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Email <span style="color:#C99746;">*</span></label>
+                        <input type="email" name="email" id="editClientEmail" required
+                            style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;"
+                            onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Phone <span style="color:#C99746;">*</span></label>
+                        <input type="text" name="phone" id="editClientPhone"
+                            style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;"
+                            onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'">
+                    </div>
+                </div>
+
+                <div>
+                    <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Address</label>
+                    <textarea name="address" id="editClientAddress" rows="2"
+                        style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;resize:vertical;"
+                        onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+                </div>
+
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px;">
+                    <button type="button" onclick="closeEditClient()"
+                        style="padding:10px 20px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        style="padding:10px 20px;background:#C99746;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;">
+                        Update Client
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- ── ADD CLIENT MODAL ── -->
+<div class="modal-overlay" id="clientModal">
+    <div class="modal">
+        <div class="modal__header">
+            <div>
+                <div class="modal__title">Add New Client</div>
+                <div class="modal__subtitle">Register a new client in the system</div>
+            </div>
+            <button type="button" class="modal__close" id="closeClientModal">&times;</button>
+        </div>
+        <form method="post" action="{% url 'create_client' %}">
+            {% csrf_token %}
+            <div class="modal__row">
+                <div class="modal__field">
+                    <label class="modal__label">Full Name <span class="modal__required">*</span></label>
+                    <input type="text" name="full_name" class="modal__input" placeholder="Maria Santos" required>
+                </div>
+                <div class="modal__field">
+                    <label class="modal__label">Company</label>
+                    <input type="text" name="company" class="modal__input" placeholder="Ayala Center Cebu">
+                </div>
+            </div>
+            <div class="modal__row">
+                <div class="modal__field">
+                    <label class="modal__label">Email <span class="modal__required">*</span></label>
+                    <input type="email" name="email" class="modal__input" placeholder="maria@email.com" required>
+                </div>
+                <div class="modal__field">
+                    <label class="modal__label">Phone</label>
+                    <input type="text" name="phone" class="modal__input" placeholder="+63 915 123 4567">
+                </div>
+            </div>
+            <div class="modal__field">
+                <label class="modal__label">Address</label>
+                <textarea name="address" class="modal__textarea" rows="2" placeholder="Cebu Business Park, Cebu City, Cebu"></textarea>
+            </div>
+            <div class="modal__footer">
+                <button type="button" class="modal__cancel" id="cancelClientModal">Cancel</button>
+                <button type="submit" class="modal__submit">Create Client</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script>
+// ── Add Client Modal ──
+(function () {
+    var overlay = document.getElementById('clientModal');
+    document.getElementById('openClientModal').addEventListener('click', function() { overlay.classList.add('modal-overlay--active'); });
+    document.getElementById('closeClientModal').addEventListener('click', function() { overlay.classList.remove('modal-overlay--active'); });
+    document.getElementById('cancelClientModal').addEventListener('click', function() { overlay.classList.remove('modal-overlay--active'); });
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.classList.remove('modal-overlay--active'); });
+})();
+
+// ── View Details Modal ──
+var currentRequestsId, currentProjectsId;
+
+function openViewClient(name, company, phone, email, address, reqsId, projsId) {
+    currentRequestsId = reqsId;
+    currentProjectsId = projsId;
+
+    document.getElementById('viewClientName').textContent    = name;
+    document.getElementById('viewClientCompany').textContent = company || '—';
+    document.getElementById('viewClientPhone').textContent   = phone || '—';
+    document.getElementById('viewClientEmail').textContent   = email;
+    document.getElementById('viewClientAddress').textContent = address || '—';
+
+    var reqEl  = document.getElementById(reqsId);
+    var projEl = document.getElementById(projsId);
+    var reqCount  = reqEl  ? reqEl.querySelectorAll('[style*="border:1px"]').length  : 0;
+    var projCount = projEl ? projEl.querySelectorAll('[style*="border:1px"]').length : 0;
+    document.getElementById('viewReqCount').textContent  = reqCount;
+    document.getElementById('viewProjCount').textContent = projCount;
+
+    switchClientTab('requests');
+    document.getElementById('modalViewClient').classList.add('modal-overlay--active');
+}
+
+function switchClientTab(tab) {
+    var reqBtn  = document.getElementById('tabRequests');
+    var projBtn = document.getElementById('tabProjects');
+    var content = document.getElementById('viewTabContent');
+
+    if (tab === 'requests') {
+        reqBtn.style.background  = '#C99746'; reqBtn.style.color  = '#fff';
+        projBtn.style.background = '#fff';    projBtn.style.color = '#64748b';
+        var src = document.getElementById(currentRequestsId);
+        content.innerHTML = src ? src.innerHTML : '';
+    } else {
+        projBtn.style.background = '#C99746'; projBtn.style.color = '#fff';
+        reqBtn.style.background  = '#fff';    reqBtn.style.color  = '#64748b';
+        var src = document.getElementById(currentProjectsId);
+        content.innerHTML = src ? src.innerHTML : '';
+    }
+}
+
+function closeViewClient() {
+    document.getElementById('modalViewClient').classList.remove('modal-overlay--active');
+}
+
+// ── Edit Client Modal ──
+function openEditClient(clientId, name, company, email, phone, address) {
+    document.getElementById('formEditClient').action    = '/clients/' + clientId + '/edit/';
+    document.getElementById('editClientName').value     = name;
+    document.getElementById('editClientCompany').value  = company;
+    document.getElementById('editClientEmail').value    = email;
+    document.getElementById('editClientPhone').value    = phone;
+    document.getElementById('editClientAddress').value  = address;
+    document.getElementById('modalEditClient').classList.add('modal-overlay--active');
+}
+
+function closeEditClient() {
+    document.getElementById('modalEditClient').classList.remove('modal-overlay--active');
+}
+</script>
+
+{% endblock %}

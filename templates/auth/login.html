@@ -1,0 +1,357 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RexurOps Admin Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background-color: #F5EFE6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 440px;
+        }
+
+        /* Logo */
+        .login-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+
+        /* Card */
+        .login-card {
+            background: #ffffff;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 24px rgba(15, 23, 42, 0.1);
+            overflow: hidden;
+        }
+
+        /* Tabs */
+        .auth-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-bottom: 1px solid #E8D4B0;
+        }
+        .auth-tab {
+            padding: 16px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+            color: #94a3b8;
+            cursor: pointer;
+            background: none;
+            border: none;
+            transition: color 0.15s, background 0.15s;
+            letter-spacing: 0.3px;
+        }
+        .auth-tab--active {
+            color: #C99746;
+            background: #F5EFE6;
+            border-bottom: 2px solid #C99746;
+        }
+        .auth-tab:hover:not(.auth-tab--active) {
+            color: #C99746;
+            background: #fdf8f0;
+        }
+
+        /* Panel */
+        .auth-panel { display: none; padding: 32px 36px 36px; }
+        .auth-panel--active { display: block; }
+
+        .auth-panel__title {
+            font-size: 20px; font-weight: 700;
+            color: #1e293b; margin-bottom: 4px;
+        }
+        .auth-panel__subtitle {
+            font-size: 12px; color: #94a3b8;
+            margin-bottom: 24px; line-height: 1.5;
+        }
+
+        /* Divider label */
+        .auth-divider {
+            font-size: 11px; font-weight: 700;
+            color: #D4AF7A; text-transform: uppercase;
+            letter-spacing: 0.8px;
+            display: flex; align-items: center; gap: 8px;
+            margin: 20px 0 16px;
+        }
+        .auth-divider::before, .auth-divider::after {
+            content: ''; flex: 1;
+            height: 1px; background: #E8D4B0;
+        }
+
+        /* Alert */
+        .auth-alert {
+            border-radius: 4px; padding: 10px 14px;
+            font-size: 13px; margin-bottom: 18px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .auth-alert--error { background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; }
+        .auth-alert--success { background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; }
+
+        /* Fields */
+        .auth-field { margin-bottom: 16px; }
+        .auth-label {
+            display: block; font-size: 11px; font-weight: 700;
+            color: #64748b; margin-bottom: 6px;
+            letter-spacing: 0.6px; text-transform: uppercase;
+        }
+        .auth-required { color: #C99746; }
+        .auth-input-wrap { position: relative; }
+        .auth-input-wrap i {
+            position: absolute; left: 13px; top: 50%;
+            transform: translateY(-50%);
+            color: #D4AF7A; font-size: 13px;
+        }
+        .auth-input {
+            width: 100%; background: #f8fafc;
+            border: 1px solid #e2e8f0; border-radius: 4px;
+            padding: 10px 14px 10px 38px;
+            font-size: 13px; color: #1e293b;
+            outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+            font-family: inherit;
+        }
+        .auth-input::placeholder { color: #94a3b8; }
+        .auth-input:focus { border-color: #C99746; box-shadow: 0 0 0 3px rgba(201,151,70,0.1); }
+        .auth-select {
+            width: 100%; background: #f8fafc;
+            border: 1px solid #e2e8f0; border-radius: 4px;
+            padding: 10px 14px; font-size: 13px; color: #1e293b;
+            outline: none; transition: border-color 0.15s;
+            font-family: inherit; cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
+        }
+        .auth-select:focus { border-color: #C99746; }
+        .auth-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* Buttons */
+        .auth-btn {
+            width: 100%; border: none; border-radius: 4px;
+            padding: 11px; font-size: 13px; font-weight: 600;
+            cursor: pointer; margin-top: 6px;
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px; transition: background 0.15s;
+            letter-spacing: 0.2px;
+        }
+        .auth-btn--primary { background: #C99746; color: #ffffff; }
+        .auth-btn--primary:hover { background: #a07830; }
+
+        /* Footer */
+        .login-footer {
+            text-align: center; margin-top: 24px;
+            font-size: 12px; color: #D4AF7A;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-wrapper">
+
+    <div class="login-logo">
+        <img src="{% static 'images/logo.png' %}" alt="Rexur Logo" style="height:90px;width:90px;object-fit:contain;border-radius:12px;">
+    </div>
+
+    <div class="login-card">
+
+        <!-- Tabs -->
+        <div class="auth-tabs">
+            <button class="auth-tab auth-tab--active" onclick="switchTab('signin', this)">
+                <i class="fas fa-right-to-bracket"></i> Sign In
+            </button>
+            <button class="auth-tab" onclick="switchTab('signup', this)">
+                <i class="fas fa-user-plus"></i> Create Account
+            </button>
+        </div>
+
+        <!-- ── SIGN IN PANEL ── -->
+        <div id="panel-signin" class="auth-panel auth-panel--active">
+            <div class="auth-panel__title">Welcome back</div>
+            <div class="auth-panel__subtitle">Sign in to access the Operations Management System</div>
+
+            {% if signin_error %}
+            <div class="auth-alert auth-alert--error">
+                <i class="fas fa-circle-exclamation"></i> {{ signin_error }}
+            </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="signin">
+
+                <div class="auth-field">
+                    <label class="auth-label">Username <span class="auth-required">*</span></label>
+                    <div class="auth-input-wrap">
+                        <i class="fas fa-user"></i>
+                        <input type="text" name="username" class="auth-input"
+                               placeholder="Enter your username" autofocus required>
+                    </div>
+                </div>
+
+                <div class="auth-field">
+                    <label class="auth-label">Password <span class="auth-required">*</span></label>
+                    <div class="auth-input-wrap">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" name="password" class="auth-input"
+                               placeholder="Enter your password" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="auth-btn auth-btn--primary">
+                    <i class="fas fa-right-to-bracket"></i> Sign In
+                </button>
+            </form>
+        </div>
+
+        <!-- ── CREATE ACCOUNT PANEL ── -->
+        <div id="panel-signup" class="auth-panel">
+            <div class="auth-panel__title">Create New Account</div>
+            <div class="auth-panel__subtitle">Admin authorization is required to create new accounts</div>
+
+            {% if signup_error %}
+            <div class="auth-alert auth-alert--error">
+                <i class="fas fa-circle-exclamation"></i> {{ signup_error }}
+            </div>
+            {% endif %}
+            {% if signup_success %}
+            <div class="auth-alert auth-alert--success">
+                <i class="fas fa-circle-check"></i> {{ signup_success }}
+            </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="signup">
+
+                <!-- Admin Authorization -->
+                <div class="auth-divider">Admin Authorization</div>
+
+                <div class="auth-row">
+                    <div class="auth-field">
+                        <label class="auth-label">Admin Username <span class="auth-required">*</span></label>
+                        <div class="auth-input-wrap">
+                            <i class="fas fa-shield-halved"></i>
+                            <input type="text" name="admin_username" class="auth-input"
+                                   placeholder="Admin username" required>
+                        </div>
+                    </div>
+                    <div class="auth-field">
+                        <label class="auth-label">Admin Password <span class="auth-required">*</span></label>
+                        <div class="auth-input-wrap">
+                            <i class="fas fa-key"></i>
+                            <input type="password" name="admin_password" class="auth-input"
+                                   placeholder="Admin password" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New Account Details -->
+                <div class="auth-divider">New Account Details</div>
+
+                <div class="auth-field">
+                    <label class="auth-label">Full Name <span class="auth-required">*</span></label>
+                    <div class="auth-input-wrap">
+                        <i class="fas fa-id-card"></i>
+                        <input type="text" name="full_name" class="auth-input"
+                               placeholder="Name" required>
+                    </div>
+                </div>
+
+                <div class="auth-row">
+                    <div class="auth-field">
+                        <label class="auth-label">Username <span class="auth-required">*</span></label>
+                        <div class="auth-input-wrap">
+                            <i class="fas fa-user"></i>
+                            <input type="text" name="new_username" class="auth-input"
+                                   placeholder="username" required>
+                        </div>
+                    </div>
+                    <div class="auth-field">
+                        <label class="auth-label">Role <span class="auth-required">*</span></label>
+                        <select name="role" class="auth-select" required>
+                            <option value="admin">Admin</option>
+                            <option value="engineer">Engineer</option>
+                            <option value="worker" selected>Worker</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="auth-field">
+                    <label class="auth-label">Email <span class="auth-required">*</span></label>
+                    <div class="auth-input-wrap">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" name="new_email" class="auth-input"
+                               placeholder="email@rexureng.com" required>
+                    </div>
+                </div>
+
+                <div class="auth-row">
+                    <div class="auth-field">
+                        <label class="auth-label">Password <span class="auth-required">*</span></label>
+                        <div class="auth-input-wrap">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" name="new_password" class="auth-input"
+                                   placeholder="Password" required>
+                        </div>
+                    </div>
+                    <div class="auth-field">
+                        <label class="auth-label">Confirm Password <span class="auth-required">*</span></label>
+                        <div class="auth-input-wrap">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" name="confirm_password" class="auth-input"
+                                   placeholder="Confirm" required>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="auth-btn auth-btn--primary">
+                    <i class="fas fa-user-plus"></i> Create Account
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+    <div class="login-footer">© 2026 Rexur Engineering · Operations Management System</div>
+</div>
+
+<script>
+function switchTab(tab, btn) {
+    document.querySelectorAll('.auth-tab').forEach(function(t) {
+        t.classList.remove('auth-tab--active');
+    });
+    document.querySelectorAll('.auth-panel').forEach(function(p) {
+        p.classList.remove('auth-panel--active');
+    });
+    btn.classList.add('auth-tab--active');
+    document.getElementById('panel-' + tab).classList.add('auth-panel--active');
+}
+
+{% if active_tab == 'signup' %}
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.auth-tab')[1].click();
+});
+{% endif %}
+</script>
+
+</body>
+</html>

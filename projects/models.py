@@ -12,11 +12,15 @@ class Project(models.Model):
 
     service_request = models.OneToOneField(ServiceRequest, on_delete=models.CASCADE, related_name='project')
     name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
     manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    workers = models.ManyToManyField(User, blank=True, related_name='assigned_projects')
     stage = models.CharField(max_length=20, choices=STAGE_CHOICES, default='pending')
+    progress = models.PositiveSmallIntegerField(default=0)
     start_date = models.DateField(null=True, blank=True)
     target_completion = models.DateField(null=True, blank=True)
     actual_completion = models.DateField(null=True, blank=True)
+    is_archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

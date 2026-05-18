@@ -1,0 +1,385 @@
+{% extends 'base.html' %}
+{% block title %}Appointments - RexurOps{% endblock %}
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header">
+    <h1 class="page-header__title">Appointments</h1>
+    <p class="page-header__subtitle">Scheduled client consultations and site visits</p>
+</div>
+
+<!-- Status Filter Cards -->
+<div class="sr-filters">
+    <a href="{% url 'appointments_list' %}{% if search_query %}?search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'all' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">All</div>
+        <div class="sr-filter-card__count">{{ counts.all }}</div>
+    </a>
+    <a href="{% url 'appointments_list' %}?status=pending{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'pending' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Pending</div>
+        <div class="sr-filter-card__count">{{ counts.pending }}</div>
+    </a>
+    <a href="{% url 'appointments_list' %}?status=confirmed{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'confirmed' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Confirmed</div>
+        <div class="sr-filter-card__count">{{ counts.confirmed }}</div>
+    </a>
+    <a href="{% url 'appointments_list' %}?status=completed{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'completed' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Completed</div>
+        <div class="sr-filter-card__count">{{ counts.completed }}</div>
+    </a>
+    <a href="{% url 'appointments_list' %}?status=cancelled{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="sr-filter-card {% if status_filter == 'cancelled' %}sr-filter-card--active{% endif %}">
+        <div class="sr-filter-card__label">Cancelled</div>
+        <div class="sr-filter-card__count">{{ counts.cancelled }}</div>
+    </a>
+</div>
+
+<!-- Search Bar -->
+<form method="get" class="sr-search-form">
+    <div class="sr-search-bar">
+        <i class="fas fa-search"></i>
+        <input type="text" name="search" class="sr-search-input"
+               value="{{ search_query }}"
+               placeholder="Search by client name, engineer, or service type...">
+    </div>
+    {% if status_filter and status_filter != 'all' %}
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    {% endif %}
+</form>
+
+<!-- Count -->
+<div class="sr-list-header">{{ appt_count }} Appointment{{ appt_count|pluralize }}</div>
+
+<!-- Appointment Cards -->
+{% if appts %}
+<div class="appt-grid">
+    {% for appt in appts %}
+    <div class="appt-card" style="cursor:pointer;"
+        onclick="openApptDetail({
+            id: {{ appt.id }},
+            client: '{{ appt.service_request.client.full_name|escapejs }}',
+            service: '{{ appt.service_request.service.get_name_display|escapejs }}',
+            date: '{{ appt.date|date:"N j, Y" }}',
+            time: '{{ appt.date|date:"g:i A" }}',
+            engineer: '{% if appt.engineer %}{{ appt.engineer.get_full_name|default:appt.engineer.username|escapejs }}{% endif %}',
+            location: '{{ appt.location|escapejs }}',
+            notes: '{{ appt.notes|escapejs }}',
+            status: '{{ appt.status }}'
+        })">
+
+        <!-- Header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:4px;">
+            <div style="font-size:15px;font-weight:700;color:#0f172a;line-height:1.3;">
+                {{ appt.service_request.client.full_name }}
+            </div>
+            <div style="flex-shrink:0;">
+                {% if appt.status == 'pending' %}
+                    <span class="badge badge--amber">pending</span>
+                {% elif appt.status == 'confirmed' %}
+                    <span class="badge badge--green">confirmed</span>
+                {% elif appt.status == 'completed' %}
+                    <span class="badge badge--teal">completed</span>
+                {% elif appt.status == 'cancelled' %}
+                    <span class="badge badge--red">cancelled</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Service -->
+        <div style="margin-bottom:14px;">
+            <span style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;">
+                {{ appt.service_request.service.get_name_display }}
+            </span>
+        </div>
+
+        <!-- Date & Time -->
+        <div class="appt-card__meta-row">
+            <i class="fas fa-calendar-days"></i>
+            <span style="font-weight:600;color:#1e293b;">{{ appt.date|date:"N j, Y" }}</span>
+            <span style="color:#94a3b8;margin:0 2px;">·</span>
+            <span style="color:#1e293b;">{{ appt.date|date:"g:i A" }}</span>
+        </div>
+
+        <!-- Engineer -->
+        <div class="appt-card__meta-row">
+            <i class="fas fa-user-tie"></i>
+            {% if appt.engineer %}
+                <span class="appt-card__engineer-name">{{ appt.engineer.get_full_name|default:appt.engineer.username }}</span>
+            {% else %}
+                <span style="color:#94a3b8;font-style:italic;">No engineer assigned</span>
+            {% endif %}
+        </div>
+
+        <!-- Location -->
+        {% if appt.location %}
+        <div class="appt-card__meta-row">
+            <i class="fas fa-location-dot"></i>
+            <span>{{ appt.location }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Notes -->
+        {% if appt.notes %}
+        <div class="appt-card__footer">
+            <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Purpose</div>
+            <div class="appt-card__footer-row">{{ appt.notes }}</div>
+        </div>
+        {% endif %}
+
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-msg">No appointments found</div>
+{% endif %}
+
+
+<!-- ── APPOINTMENT DETAIL MODAL ── -->
+<div class="modal-overlay" id="modalApptDetail" onclick="if(event.target===this)closeApptDetail()">
+    <div class="modal" style="max-width:500px;">
+
+        <!-- Header -->
+        <div class="modal__header">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span class="modal__title">Appointment Details</span>
+                <span id="apptDetailBadge" class="badge"></span>
+            </div>
+            <button class="modal__close" onclick="closeApptDetail()">&times;</button>
+        </div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:20px;">
+            Appointment ID: <span id="apptDetailId" style="font-weight:600;color:#475569;"></span>
+        </div>
+
+        <!-- Info grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;margin-bottom:20px;">
+            <div>
+                <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Client Name</div>
+                <div id="apptDetailClient" style="font-size:13px;font-weight:600;color:#1e293b;"></div>
+            </div>
+            <div>
+                <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Service Type</div>
+                <div id="apptDetailService" style="font-size:13px;font-weight:600;color:#1e293b;"></div>
+            </div>
+            <div>
+                <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Date</div>
+                <div id="apptDetailDate" style="font-size:13px;color:#475569;"></div>
+            </div>
+            <div>
+                <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Time</div>
+                <div id="apptDetailTime" style="font-size:13px;color:#475569;"></div>
+            </div>
+            <div id="apptDetailEngineerBlock" style="grid-column:1/-1;">
+                <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Assigned Engineer</div>
+                <div id="apptDetailEngineer" style="font-size:13px;color:#C99746;font-weight:600;"></div>
+            </div>
+            <div id="apptDetailLocationBlock" style="grid-column:1/-1;display:none;">
+                <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Location</div>
+                <div id="apptDetailLocation" style="font-size:13px;color:#475569;"></div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div id="apptDetailNotesBlock" style="margin-bottom:20px;display:none;">
+            <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">Notes</div>
+            <div id="apptDetailNotes" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;padding:12px;font-size:13px;color:#475569;line-height:1.6;"></div>
+        </div>
+
+        <!-- Update Status -->
+        <div style="border-top:1px solid #f1f5f9;padding-top:16px;">
+            <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;">Update Status</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" onclick="setApptStatus('confirmed')"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:4px;font-size:13px;font-weight:600;color:#475569;cursor:pointer;transition:background 0.15s;">
+                    <i class="fas fa-circle" style="font-size:10px;color:#94a3b8;"></i> Confirm
+                </button>
+                <button type="button" onclick="setApptStatus('completed')"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:4px;font-size:13px;font-weight:600;color:#166534;cursor:pointer;transition:background 0.15s;">
+                    <i class="fas fa-circle-check" style="font-size:13px;"></i> Mark as Completed
+                </button>
+                <button type="button" onclick="setApptStatus('cancelled')"
+                    style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;font-size:13px;font-weight:600;color:#991b1b;cursor:pointer;transition:background 0.15s;">
+                    <i class="fas fa-circle-xmark" style="font-size:13px;"></i> Cancel
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ── EDIT APPOINTMENT MODAL ── -->
+<div class="modal-overlay" id="modalEditAppt" onclick="if(event.target===this)closeEditAppt()">
+    <div class="modal" style="max-width:460px;">
+
+        <div class="modal__header">
+            <div>
+                <div class="modal__title">Edit Appointment</div>
+                <div class="modal__subtitle">Update schedule, engineer, and status</div>
+            </div>
+            <button class="modal__close" onclick="closeEditAppt()">&times;</button>
+        </div>
+
+        <form id="formEditAppt" method="post">
+            {% csrf_token %}
+            <div style="display:flex;flex-direction:column;gap:14px;">
+
+                <div class="modal__row">
+                    <div class="modal__field" style="margin-bottom:0;">
+                        <label class="modal__label">Date <span class="modal__required">*</span></label>
+                        <input type="date" name="appt_date" id="editApptDate" required class="modal__input">
+                    </div>
+                    <div class="modal__field" style="margin-bottom:0;">
+                        <label class="modal__label">Time <span class="modal__required">*</span></label>
+                        <input type="time" name="appt_time" id="editApptTime" required class="modal__input">
+                    </div>
+                </div>
+
+                <div class="modal__field" style="margin-bottom:0;">
+                    <label class="modal__label">Assigned Engineer</label>
+                    <select name="engineer_id" id="editApptEngineer" class="modal__select">
+                        <option value="">No engineer</option>
+                        {% for eng in modal_engineers %}
+                        <option value="{{ eng.user.id }}">{{ eng.user.get_full_name|default:eng.user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="modal__field" style="margin-bottom:0;">
+                    <label class="modal__label">Status</label>
+                    <select name="status" id="editApptStatus" class="modal__select">
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="modal__field" style="margin-bottom:0;">
+                    <label class="modal__label">Location</label>
+                    <input type="text" name="location" id="editApptLocation" placeholder="e.g. Client site, Office" class="modal__input">
+                </div>
+
+                <div class="modal__field" style="margin-bottom:0;">
+                    <label class="modal__label">Purpose / Notes</label>
+                    <textarea name="notes" id="editApptNotes" rows="2" class="modal__textarea"></textarea>
+                </div>
+
+                <div class="modal__footer" style="margin-top:8px;">
+                    <button type="button" onclick="closeEditAppt()" class="modal__cancel">Cancel</button>
+                    <button type="submit" class="modal__submit">Save Changes</button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script>
+var _currentApptId = null;
+
+// ── Detail Modal ──
+function openApptDetail(data) {
+    _currentApptId = data.id;
+
+    var badgeMap = {
+        pending:   ['badge--amber', 'pending'],
+        confirmed: ['badge--green', 'confirmed'],
+        completed: ['badge--teal',  'completed'],
+        cancelled: ['badge--red',   'cancelled'],
+    };
+    var badge = document.getElementById('apptDetailBadge');
+    badge.className   = 'badge ' + (badgeMap[data.status] ? badgeMap[data.status][0] : '');
+    badge.textContent = badgeMap[data.status] ? badgeMap[data.status][1] : data.status;
+
+    document.getElementById('apptDetailId').textContent       = data.id;
+    document.getElementById('apptDetailClient').textContent   = data.client;
+    document.getElementById('apptDetailService').textContent  = data.service;
+    document.getElementById('apptDetailDate').textContent     = data.date;
+    document.getElementById('apptDetailTime').textContent     = data.time;
+    document.getElementById('apptDetailEngineer').textContent = data.engineer || 'Not assigned';
+
+    var locBlock = document.getElementById('apptDetailLocationBlock');
+    if (data.location) {
+        document.getElementById('apptDetailLocation').textContent = data.location;
+        locBlock.style.display = 'block';
+    } else {
+        locBlock.style.display = 'none';
+    }
+
+    var notesBlock = document.getElementById('apptDetailNotesBlock');
+    if (data.notes) {
+        document.getElementById('apptDetailNotes').textContent = data.notes;
+        notesBlock.style.display = 'block';
+    } else {
+        notesBlock.style.display = 'none';
+    }
+
+    document.getElementById('modalApptDetail').classList.add('modal-overlay--active');
+}
+
+function closeApptDetail() {
+    document.getElementById('modalApptDetail').classList.remove('modal-overlay--active');
+    _currentApptId = null;
+}
+
+function setApptStatus(newStatus) {
+    if (!_currentApptId) return;
+    var fd = new FormData();
+    fd.append('status', newStatus);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('/appointments/' + _currentApptId + '/update-status/', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.ok) { alert('Failed: ' + (data.error || 'Unknown error')); return; }
+            if (data.blueprint_created) {
+                showToast('Appointment completed. Blueprint created and saved.');
+                setTimeout(function() { window.location.href = '/blueprints/'; }, 1600);
+            } else {
+                window.location.reload();
+            }
+        })
+        .catch(function() { alert('Network error. Please try again.'); });
+}
+
+function showToast(msg) {
+    var t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);' +
+        'background:#1e293b;color:#fff;font-size:13px;font-weight:600;padding:12px 24px;' +
+        'border-radius:6px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.18);' +
+        'display:flex;align-items:center;gap:8px;white-space:nowrap;';
+    t.innerHTML = '<i class="fas fa-circle-check" style="color:#C99746;"></i> ' + msg;
+    document.body.appendChild(t);
+    setTimeout(function() { t.remove(); }, 2000);
+}
+
+// ── Edit Modal ──
+function openEditAppt(id, date, time, engineerId, location, notes, status) {
+    document.getElementById('formEditAppt').action    = '/appointments/' + id + '/edit/';
+    document.getElementById('editApptDate').value     = date;
+    document.getElementById('editApptTime').value     = time;
+    document.getElementById('editApptLocation').value = location;
+    document.getElementById('editApptNotes').value    = notes;
+
+    var engSel = document.getElementById('editApptEngineer');
+    for (var i = 0; i < engSel.options.length; i++) {
+        engSel.options[i].selected = (engSel.options[i].value === String(engineerId));
+    }
+    var statSel = document.getElementById('editApptStatus');
+    for (var i = 0; i < statSel.options.length; i++) {
+        statSel.options[i].selected = (statSel.options[i].value === status);
+    }
+
+    document.getElementById('modalEditAppt').classList.add('modal-overlay--active');
+}
+
+function closeEditAppt() {
+    document.getElementById('modalEditAppt').classList.remove('modal-overlay--active');
+}
+</script>
+
+{% endblock %}

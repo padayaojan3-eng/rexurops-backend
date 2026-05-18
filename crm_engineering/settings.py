@@ -31,7 +31,6 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -53,7 +52,7 @@ INSTALLED_APPS = [
     'projects',
 ]
 
-MIDDLEWARE = [
+MIDDLEWARE = [ 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -68,7 +67,7 @@ ROOT_URLCONF = 'crm_engineering.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -91,7 +90,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'crm_engineering_db',
         'USER': 'postgres',
-        'PASSWORD': 'janellepads123',
+        'PASSWORD': 'jina_jin2006',
         'HOST': 'localhost',
         'PORT': '5432',
     }
@@ -132,3 +131,13 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+STATICFILES_DIRS = [BASE_DIR / 'static']
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+LOGIN_URL = '/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+ 
+ADMIN_ENABLED = True 

@@ -1,0 +1,385 @@
+{% extends 'base.html' %}
+{% block title %}Tasks - RexurOps{% endblock %}
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header page-header--with-action">
+    <div>
+        <h1 class="page-header__title">Tasks</h1>
+        <p class="page-header__subtitle">
+            Assign and monitor tasks for all active projects
+        </p>
+    </div>
+    <button type="button" class="create-btn" id="openTaskModal">
+        <i class="fas fa-plus"></i> New Task
+    </button>
+</div>
+
+<!-- Status Filter Cards -->
+<div class="task-filters">
+    <a href="{% url 'tasks_list' %}{% if search_query %}?search={{ search_query }}{% endif %}"
+       class="task-filter {% if status_filter == 'all' %}task-filter--active{% endif %}">
+        <div class="task-filter__label">All</div>
+        <div class="task-filter__count">{{ counts.all }}</div>
+    </a>
+    <a href="{% url 'tasks_list' %}?status=pending{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="task-filter {% if status_filter == 'pending' %}task-filter--active{% endif %}">
+        <div class="task-filter__label">Pending</div>
+        <div class="task-filter__count">{{ counts.pending }}</div>
+    </a>
+    <a href="{% url 'tasks_list' %}?status=in_progress{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="task-filter {% if status_filter == 'in_progress' %}task-filter--active{% endif %}">
+        <div class="task-filter__label">In Progress</div>
+        <div class="task-filter__count">{{ counts.in_progress }}</div>
+    </a>
+    <a href="{% url 'tasks_list' %}?status=completed{% if search_query %}&search={{ search_query }}{% endif %}"
+       class="task-filter {% if status_filter == 'completed' %}task-filter--active{% endif %}">
+        <div class="task-filter__label">Completed</div>
+        <div class="task-filter__count">{{ counts.completed }}</div>
+    </a>
+</div>
+
+<!-- Search Bar -->
+<form method="get" class="sr-search-form">
+    <div class="sr-search-bar">
+        <i class="fas fa-search"></i>
+        <input type="text" name="search" class="sr-search-input"
+               value="{{ search_query }}"
+               placeholder="Search by task name, project, or assigned worker...">
+    </div>
+    {% if status_filter and status_filter != 'all' %}
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    {% endif %}
+</form>
+
+<!-- Task List -->
+{% if task_list %}
+<div class="task-list">
+    {% for task in task_list %}
+    {% with project=task.blueprint.service_request.project %}
+    <div class="task-item"
+         style="cursor:pointer;"
+         onclick="openTaskDetail(this)"
+         data-id="{{ task.id }}"
+         data-title="{{ task.title|escapejs }}"
+         data-status="{{ task.status }}"
+         data-priority="{{ task.priority }}"
+         data-desc="{{ task.description|escapejs }}"
+         data-due="{{ task.due_date|date:'n/j/Y' }}"
+         data-project="{{ project.name|default:''|escapejs }}"
+         data-assigned="{{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:''|escapejs }}">
+
+        <!-- Title + Badges -->
+        <div class="task-item__header">
+            <span class="task-item__title">{{ task.title }}</span>
+            <div class="task-item__badges">
+                {% if task.status == 'pending' %}
+                    <span class="badge badge--amber">pending</span>
+                {% elif task.status == 'in_progress' %}
+                    <span class="badge badge--blue">in-progress</span>
+                {% elif task.status == 'completed' %}
+                    <span class="badge badge--green">completed</span>
+                {% elif task.status == 'on_hold' %}
+                    <span class="badge badge--gray">on hold</span>
+                {% endif %}
+                {% if task.priority == 'urgent' %}
+                    <span class="badge badge--orange">urgent</span>
+                {% elif task.priority == 'high' %}
+                    <span class="badge badge--red">high</span>
+                {% elif task.priority == 'medium' %}
+                    <span class="badge badge--teal">medium</span>
+                {% elif task.priority == 'low' %}
+                    <span class="badge badge--gray">low</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Description -->
+        {% if task.description %}
+        <div class="task-item__desc">{{ task.description }}</div>
+        {% endif %}
+
+        <!-- Meta row -->
+        <div class="task-item__meta">
+            {% if project %}
+            <span class="task-item__meta-group">
+                <span class="task-item__meta-label">Project:</span>
+                <span class="task-item__meta-val">{{ project.name }}</span>
+            </span>
+            {% endif %}
+            {% if task.assigned_to %}
+            <span class="task-item__meta-group">
+                <span class="task-item__meta-label">Assigned to:</span>
+                <span class="task-item__meta-val">
+                    {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}
+                </span>
+            </span>
+            {% endif %}
+            <span class="task-item__meta-group">
+                <span class="task-item__meta-label">Due:</span>
+                <span class="task-item__meta-due">{{ task.due_date|date:"n/j/Y" }}</span>
+            </span>
+        </div>
+
+    </div>
+    {% endwith %}
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-msg">No tasks found</div>
+{% endif %}
+
+<!-- ── CREATE TASK MODAL ──────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="taskModal">
+    <div class="modal">
+
+        <div class="modal__header">
+            <div>
+                <div class="modal__title">Create New Task</div>
+            </div>
+            <button type="button" class="modal__close" id="closeTaskModal">&times;</button>
+        </div>
+
+        <form method="post" action="{% url 'create_task' %}">
+            {% csrf_token %}
+
+            <div class="modal__field">
+                <label class="modal__label">Project <span class="modal__required">*</span></label>
+                <select name="project_id" class="modal__select" required>
+                    <option value="">Select project</option>
+                    {% for proj in modal_projects %}
+                    <option value="{{ proj.id }}">{{ proj.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="modal__field">
+                <label class="modal__label">Task Name <span class="modal__required">*</span></label>
+                <input type="text" name="task_name" class="modal__input"
+                       placeholder="e.g., Install network cabling" required>
+            </div>
+
+            <div class="modal__field">
+                <label class="modal__label">Description</label>
+                <textarea name="description" class="modal__textarea" rows="3"
+                          placeholder="Detailed task description..."></textarea>
+            </div>
+
+            <div class="modal__row">
+                <div class="modal__field">
+                    <label class="modal__label">Assign To <span class="modal__required">*</span></label>
+                    <select name="assigned_to_id" class="modal__select" required>
+                        <option value="">Select worker</option>
+                        {% for emp in modal_workers %}
+                        <option value="{{ emp.user.id }}">
+                            {% if emp.role == 'engineer' %}Engr. {% endif %}{{ emp.user.get_full_name|default:emp.user.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal__field">
+                    <label class="modal__label">Priority</label>
+                    <select name="priority" class="modal__select">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                        <option value="urgent">Urgent</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal__field">
+                <label class="modal__label">Due Date <span class="modal__required">*</span></label>
+                <input type="date" name="due_date" class="modal__input" required>
+            </div>
+
+            <div class="modal__footer">
+                <button type="button" class="modal__cancel" id="cancelTaskModal">Cancel</button>
+                <button type="submit" class="modal__submit">Create Task</button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+(function () {
+    var overlay = document.getElementById('taskModal');
+    var openBtn = document.getElementById('openTaskModal');
+    var closeBtn = document.getElementById('closeTaskModal');
+    var cancelBtn = document.getElementById('cancelTaskModal');
+
+    function openModal() { overlay.classList.add('modal-overlay--active'); }
+    function closeModal() { overlay.classList.remove('modal-overlay--active'); }
+
+    openBtn.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeModal();
+    });
+})();
+</script>
+
+
+<!-- ── TASK DETAIL MODAL ──────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="taskDetailModal" onclick="if(event.target===this)closeTaskDetail()">
+    <div class="modal" style="max-width:500px;">
+
+        <!-- Header -->
+        <div class="modal__header" style="margin-bottom:4px;">
+            <div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <div class="modal__title" id="tdTitle"></div>
+                    <span id="tdStatusBadge" class="badge"></span>
+                </div>
+                <div class="modal__subtitle">View and manage task details</div>
+            </div>
+            <button type="button" class="modal__close" onclick="closeTaskDetail()">&times;</button>
+        </div>
+
+        <!-- Detail rows -->
+        <div style="border:1px solid #f1f5f9;border-radius:6px;overflow:hidden;margin-bottom:20px;">
+            <div style="display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid #f1f5f9;">
+                <div style="padding:11px 16px;font-size:12px;color:#64748b;background:#f8fafc;font-weight:500;">Project</div>
+                <div style="padding:11px 16px;font-size:13px;font-weight:600;color:#0f172a;text-align:right;" id="tdProject">—</div>
+            </div>
+            <div style="display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid #f1f5f9;">
+                <div style="padding:11px 16px;font-size:12px;color:#64748b;background:#f8fafc;font-weight:500;">Assigned To</div>
+                <div style="padding:11px 16px;font-size:13px;color:#475569;text-align:right;" id="tdAssigned">—</div>
+            </div>
+            <div style="display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid #f1f5f9;">
+                <div style="padding:11px 16px;font-size:12px;color:#64748b;background:#f8fafc;font-weight:500;">Priority</div>
+                <div style="padding:11px 16px;text-align:right;" id="tdPriority"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:140px 1fr;">
+                <div style="padding:11px 16px;font-size:12px;color:#64748b;background:#f8fafc;font-weight:500;">Due Date</div>
+                <div style="padding:11px 16px;font-size:13px;color:#475569;text-align:right;" id="tdDue">—</div>
+            </div>
+        </div>
+
+        <!-- Description -->
+        <div style="margin-bottom:20px;">
+            <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:8px;">Description</div>
+            <div style="font-size:13px;color:#3b82f6;line-height:1.6;" id="tdDesc">—</div>
+        </div>
+
+        <!-- Update Status -->
+        <div>
+            <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px;">Update Status</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;" id="tdStatusBtns"></div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Hidden CSRF for task AJAX -->
+<form id="taskCsrfHolder" style="display:none;">{% csrf_token %}</form>
+
+<script>
+var _currentTaskId = null;
+
+var _statusMap = {
+    pending:     ['badge--amber', 'pending'],
+    in_progress: ['badge--blue',  'in-progress'],
+    completed:   ['badge--green', 'completed'],
+    on_hold:     ['badge--gray',  'on hold'],
+};
+var _priorityMap = {
+    urgent: ['badge--orange', 'urgent'],
+    high:   ['badge--red',    'high'],
+    medium: ['badge--teal',   'medium'],
+    low:    ['badge--gray',   'low'],
+};
+
+function openTaskDetail(card) {
+    _currentTaskId = card.dataset.id;
+    var status   = card.dataset.status;
+    var priority = card.dataset.priority;
+
+    // Title + status badge
+    document.getElementById('tdTitle').textContent = card.dataset.title;
+    var sb = document.getElementById('tdStatusBadge');
+    var sm = _statusMap[status] || ['badge--gray', status];
+    sb.className = 'badge ' + sm[0];
+    sb.textContent = sm[1];
+
+    // Detail rows
+    document.getElementById('tdProject').textContent  = card.dataset.project  || '—';
+    document.getElementById('tdAssigned').textContent = card.dataset.assigned || '—';
+    document.getElementById('tdDue').textContent      = card.dataset.due      || '—';
+
+    var pm = _priorityMap[priority] || ['badge--gray', priority];
+    document.getElementById('tdPriority').innerHTML =
+        '<span class="badge ' + pm[0] + '">' + pm[1] + '</span>';
+
+    // Description
+    document.getElementById('tdDesc').textContent = card.dataset.desc || '—';
+
+    // Status action buttons
+    renderTaskStatusBtns(status);
+
+    document.getElementById('taskDetailModal').classList.add('modal-overlay--active');
+}
+
+function renderTaskStatusBtns(status) {
+    var container = document.getElementById('tdStatusBtns');
+    container.innerHTML = '';
+
+    if (status === 'completed') {
+        container.innerHTML =
+            '<div style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#16a34a;font-weight:600;">' +
+            '<i class="fas fa-circle-check"></i> Task Completed</div>';
+        return;
+    }
+
+    // Start Task button
+    var startBtn = document.createElement('button');
+    startBtn.type = 'button';
+    startBtn.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:13px;font-weight:500;color:#475569;cursor:pointer;';
+    startBtn.innerHTML = 'Start Task';
+    if (status === 'in_progress') {
+        startBtn.style.opacity = '0.45';
+        startBtn.style.cursor  = 'default';
+        startBtn.disabled = true;
+    } else {
+        startBtn.onclick = function() { setTaskStatus('in_progress'); };
+    }
+    container.appendChild(startBtn);
+
+    // Mark Complete button
+    var completeBtn = document.createElement('button');
+    completeBtn.type = 'button';
+    completeBtn.style.cssText = 'display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;font-size:13px;font-weight:500;color:#475569;cursor:pointer;';
+    completeBtn.innerHTML = '<i class="fas fa-circle-check" style="color:#94a3b8;font-size:14px;"></i> Mark Complete';
+    completeBtn.onclick = function() { setTaskStatus('completed'); };
+    container.appendChild(completeBtn);
+}
+
+function setTaskStatus(newStatus) {
+    if (!_currentTaskId) return;
+    var fd = new FormData();
+    fd.append('status', newStatus);
+    fd.append('csrfmiddlewaretoken', getTaskCsrf());
+    fetch('/tasks/' + _currentTaskId + '/update-status/', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.ok) { alert('Failed: ' + (data.error || 'Unknown')); return; }
+            closeTaskDetail();
+            window.location.reload();
+        })
+        .catch(function() { alert('Network error. Please try again.'); });
+}
+
+function closeTaskDetail() {
+    document.getElementById('taskDetailModal').classList.remove('modal-overlay--active');
+    _currentTaskId = null;
+}
+
+function getTaskCsrf() {
+    var el = document.querySelector('#taskCsrfHolder [name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+}
+</script>
+
+{% endblock %}
