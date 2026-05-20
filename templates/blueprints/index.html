@@ -115,6 +115,17 @@
         <div class="bp-card__remarks">{{ item.blueprint.remarks }}</div>
         {% endif %}
 
+        <!-- Delete -->
+        <div style="display:flex;justify-content:flex-end;margin-top:10px;" onclick="event.stopPropagation()">
+            <form method="post" action="{% url 'delete_blueprint' item.blueprint.id %}"
+                  onsubmit="return confirm('Delete this blueprint?')">
+                {% csrf_token %}
+                <button type="submit" class="proj-card__delete-btn" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </form>
+        </div>
+
     </div>
     {% endfor %}
 </div>

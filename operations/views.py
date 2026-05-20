@@ -882,6 +882,50 @@ def blueprint_upload_file(request, bp_id):
 
 
 @login_required
+def sr_delete(request, sr_id):
+    if request.method != 'POST':
+        return redirect('service_requests')
+    try:
+        ServiceRequest.objects.get(id=sr_id).delete()
+    except Exception:
+        pass
+    return redirect('service_requests')
+
+
+@login_required
+def delete_appointment(request, appt_id):
+    if request.method != 'POST':
+        return redirect('appointments_list')
+    try:
+        Appointment.objects.get(id=appt_id).delete()
+    except Exception:
+        pass
+    return redirect('appointments_list')
+
+
+@login_required
+def delete_blueprint(request, bp_id):
+    if request.method != 'POST':
+        return redirect('blueprints_list')
+    try:
+        Blueprint.objects.get(id=bp_id).delete()
+    except Exception:
+        pass
+    return redirect('blueprints_list')
+
+
+@login_required
+def delete_task(request, task_id):
+    if request.method != 'POST':
+        return redirect('tasks_list')
+    try:
+        Task.objects.get(id=task_id).delete()
+    except Exception:
+        pass
+    return redirect('tasks_list')
+
+
+@login_required
 def blueprint_delete_file(request, file_id):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)

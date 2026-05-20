@@ -121,6 +121,17 @@
             </span>
         </div>
 
+        <!-- Delete -->
+        <div style="display:flex;justify-content:flex-end;margin-top:8px;" onclick="event.stopPropagation()">
+            <form method="post" action="{% url 'delete_task' task.id %}"
+                  onsubmit="return confirm('Delete this task?')">
+                {% csrf_token %}
+                <button type="submit" class="proj-card__delete-btn" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </form>
+        </div>
+
     </div>
     {% endwith %}
     {% endfor %}

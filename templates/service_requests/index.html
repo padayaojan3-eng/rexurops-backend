@@ -265,6 +265,13 @@
                             <i class="fas fa-circle-xmark"></i> Reject
                         </button>
                     </form>
+                    <form id="formDeleteSR" method="post" style="margin:0;"
+                          onsubmit="return confirm('Delete this service request? This cannot be undone.')">
+                        {% csrf_token %}
+                        <button type="submit" style="padding:7px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:4px;font-size:13px;font-weight:600;color:#dc2626;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </form>
                 </div>
             </div>
 
@@ -369,9 +376,10 @@ function openDetail(data) {
     badge.className = 'badge ' + (badgeMap[data.status] ? badgeMap[data.status][0] : '');
     badge.textContent = badgeMap[data.status] ? badgeMap[data.status][1] : data.status;
 
-    document.getElementById('formReview').action   = '/service-requests/' + data.id + '/reviewed/';
-    document.getElementById('formReject').action   = '/service-requests/' + data.id + '/reject/';
-    document.getElementById('formSchedule').action = '/service-requests/' + data.id + '/schedule/';
+    document.getElementById('formReview').action    = '/service-requests/' + data.id + '/reviewed/';
+    document.getElementById('formReject').action    = '/service-requests/' + data.id + '/reject/';
+    document.getElementById('formSchedule').action  = '/service-requests/' + data.id + '/schedule/';
+    document.getElementById('formDeleteSR').action  = '/service-requests/' + data.id + '/delete/';
 
     var isApproved  = data.status === 'approved';
     var isClosedOut = data.status === 'approved' || data.status === 'rejected';
