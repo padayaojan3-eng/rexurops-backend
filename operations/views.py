@@ -378,7 +378,7 @@ def service_requests(request):
     modal_engineers = []
     try:
         modal_engineers = list(
-            UserProfile.objects.select_related('user').filter(role='engineer').order_by('user__first_name')
+            UserProfile.objects.select_related('user').filter(role__in=['mechanical_engineer', 'civil_engineer', 'architect']).order_by('user__first_name')
         )
     except Exception:
         pass
@@ -502,7 +502,7 @@ def appointments_list(request):
     modal_engineers = []
     try:
         modal_engineers = list(
-            UserProfile.objects.select_related('user').filter(role='engineer').order_by('user__first_name')
+            UserProfile.objects.select_related('user').filter(role__in=['mechanical_engineer', 'civil_engineer', 'architect']).order_by('user__first_name')
         )
     except Exception:
         pass
