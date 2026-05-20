@@ -69,8 +69,8 @@
     {% with p=item.project %}
     <div class="proj-card"
          data-id="{{ p.id }}"
-         data-name="{{ p.name|escapejs }}"
-         data-desc="{{ p.description|escapejs }}"
+         data-name="{{ p.name }}"
+         data-desc="{{ p.description }}"
          data-stage="{{ p.stage }}"
          data-progress="{{ item.progress }}"
          data-start="{{ p.start_date|date:'Y-m-d'|default:'' }}"
@@ -202,11 +202,11 @@
             <div id="newClientFields" style="display:none;">
                 <div class="modal__field">
                     <label class="modal__label">Full Name <span class="modal__required">*</span></label>
-                    <input type="text" name="new_client_name" class="modal__input" placeholder="e.g., Maria Santos">
+                    <input type="text" name="new_client_name" class="modal__input" placeholder="e.g. Josh De Leon">
                 </div>
                 <div class="modal__field">
                     <label class="modal__label">Email <span class="modal__required">*</span></label>
-                    <input type="email" name="new_client_email" class="modal__input" placeholder="email@example.com">
+                    <input type="email" name="new_client_email" class="modal__input" placeholder="e.g. josh@email.com">
                 </div>
                 <div class="modal__row">
                     <div class="modal__field">

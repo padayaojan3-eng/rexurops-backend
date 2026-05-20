@@ -207,15 +207,8 @@ def dashboard(request):
     try:
         ongoing = Project.objects.filter(stage='ongoing')
         if ongoing.exists():
-            total_pct, counted = 0, 0
-            for project in ongoing:
-                bps = Blueprint.objects.filter(service_request=project.service_request)
-                t = Task.objects.filter(blueprint__in=bps).count()
-                c = Task.objects.filter(blueprint__in=bps, status='completed').count()
-                if t > 0:
-                    total_pct += (c / t) * 100
-                    counted += 1
-            overall_progress = int(total_pct / counted) if counted else 0
+            values = [p.progress for p in ongoing]
+            overall_progress = int(sum(values) / len(values))
     except Exception:
         pass
 

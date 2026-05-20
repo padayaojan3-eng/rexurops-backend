@@ -150,7 +150,7 @@
         <div class="modal__body" style="padding:20px 28px 24px;">
 
             <!-- Client/service fields (hidden when approved) -->
-            <div id="detailFields" style="display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;margin-bottom:16px;">
+            <div id="detailFields" class="form-grid-2" style="margin-bottom:16px;">
                 <div>
                     <div style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Client Name</div>
                     <div id="detailClient" style="font-size:13px;font-weight:600;color:#1e293b;"></div>
@@ -190,7 +190,7 @@
                     <div style="background:#f8fafc;padding:10px 16px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;border-bottom:1px solid #e2e8f0;">
                         Client &amp; Request
                     </div>
-                    <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;">
+                    <div class="form-grid-2" style="padding:14px 16px;gap:10px 20px;">
                         <div>
                             <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">Client</div>
                             <div id="apptClient" style="font-size:13px;font-weight:600;color:#1e293b;"></div>
@@ -206,7 +206,7 @@
                     <div style="background:#f8fafc;padding:10px 16px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.4px;border-bottom:1px solid #e2e8f0;">
                         Scheduled Appointment
                     </div>
-                    <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;">
+                    <div class="form-grid-2" style="padding:14px 16px;gap:10px 20px;">
                         <div>
                             <div style="font-size:11px;color:#94a3b8;margin-bottom:2px;">Date</div>
                             <div id="apptDate" style="font-size:13px;font-weight:600;color:#1e293b;"></div>
@@ -293,7 +293,7 @@
             {% csrf_token %}
             <div style="display:flex;flex-direction:column;gap:14px;">
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-grid-2" style="gap:12px;">
                     <div>
                         <label style="display:block;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:6px;">
                             Date <span style="color:#C99746;">*</span>

@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     # Third-party packages
     'rest_framework',
     'crispy_forms',
+    'crispy_bootstrap4',
     'django_extensions',
 
     # Your custom apps
@@ -141,3 +142,5 @@ LOGIN_URL = '/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 
 ADMIN_ENABLED = True
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'

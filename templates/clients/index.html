@@ -176,7 +176,7 @@
         <!-- Contact Info -->
         <div style="padding:16px 28px;">
             <div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:12px;">Contact Information</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="form-grid-2" style="gap:10px;">
                 <div style="display:flex;align-items:flex-start;gap:8px;">
                     <i class="fas fa-building" style="color:#C99746;margin-top:2px;font-size:13px;"></i>
                     <span id="viewClientCompany" style="font-size:13px;color:#475569;"></span>
@@ -231,7 +231,7 @@
             {% csrf_token %}
             <div style="padding:20px 28px 24px;display:flex;flex-direction:column;gap:14px;">
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-grid-2" style="gap:12px;">
                     <div>
                         <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Full Name <span style="color:#C99746;">*</span></label>
                         <input type="text" name="full_name" id="editClientName" required
@@ -246,7 +246,7 @@
                     </div>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-grid-2" style="gap:12px;">
                     <div>
                         <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Email <span style="color:#C99746;">*</span></label>
                         <input type="email" name="email" id="editClientEmail" required
@@ -300,7 +300,7 @@
             <div class="modal__row">
                 <div class="modal__field">
                     <label class="modal__label">Full Name <span class="modal__required">*</span></label>
-                    <input type="text" name="full_name" class="modal__input" placeholder="Maria Santos" required>
+                    <input type="text" name="full_name" class="modal__input" placeholder="e.g. Josh De Leon" required>
                 </div>
                 <div class="modal__field">
                     <label class="modal__label">Company</label>
@@ -310,7 +310,7 @@
             <div class="modal__row">
                 <div class="modal__field">
                     <label class="modal__label">Email <span class="modal__required">*</span></label>
-                    <input type="email" name="email" class="modal__input" placeholder="maria@email.com" required>
+                    <input type="email" name="email" class="modal__input" placeholder="e.g. josh@email.com" required>
                 </div>
                 <div class="modal__field">
                     <label class="modal__label">Phone</label>

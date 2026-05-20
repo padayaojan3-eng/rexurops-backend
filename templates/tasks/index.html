@@ -61,13 +61,13 @@
          style="cursor:pointer;"
          onclick="openTaskDetail(this)"
          data-id="{{ task.id }}"
-         data-title="{{ task.title|escapejs }}"
+         data-title="{{ task.title }}"
          data-status="{{ task.status }}"
          data-priority="{{ task.priority }}"
-         data-desc="{{ task.description|escapejs }}"
+         data-desc="{{ task.description }}"
          data-due="{{ task.due_date|date:'n/j/Y' }}"
-         data-project="{{ project.name|default:''|escapejs }}"
-         data-assigned="{{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:''|escapejs }}">
+         data-project="{{ project.name|default:'' }}"
+         data-assigned="{{ task.assigned_to.get_full_name|default:task.assigned_to.username|default:'' }}">
 
         <!-- Title + Badges -->
         <div class="task-item__header">
@@ -240,19 +240,19 @@
 
         <!-- Detail rows -->
         <div style="border:1px solid #f1f5f9;border-radius:6px;overflow:hidden;margin-bottom:20px;">
-            <div style="display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid #f1f5f9;">
+            <div class="detail-row" style="border-bottom:1px solid #f1f5f9;">
                 <div style="padding:11px 16px;font-size:12px;color:#64748b;background:#f8fafc;font-weight:500;">Project</div>
                 <div style="padding:11px 16px;font-size:13px;font-weight:600;color:#0f172a;text-align:right;" id="tdProject">—</div>
             </div>
-            <div style="display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid #f1f5f9;">
+            <div class="detail-row" style="border-bottom:1px solid #f1f5f9;">
                 <div style="padding:11px 16px;font-size:12px;color:#64748b;background:#f8fafc;font-weight:500;">Assigned To</div>
                 <div style="padding:11px 16px;font-size:13px;color:#475569;text-align:right;" id="tdAssigned">—</div>
             </div>
-            <div style="display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid #f1f5f9;">
+            <div class="detail-row" style="border-bottom:1px solid #f1f5f9;">
                 <div style="padding:11px 16px;font-size:12px;color:#64748b;background:#f8fafc;font-weight:500;">Priority</div>
                 <div style="padding:11px 16px;text-align:right;" id="tdPriority"></div>
             </div>
-            <div style="display:grid;grid-template-columns:140px 1fr;">
+            <div class="detail-row">
                 <div style="padding:11px 16px;font-size:12px;color:#64748b;background:#f8fafc;font-weight:500;">Due Date</div>
                 <div style="padding:11px 16px;font-size:13px;color:#475569;text-align:right;" id="tdDue">—</div>
             </div>

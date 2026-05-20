@@ -143,7 +143,7 @@
             {% csrf_token %}
             <div class="modal__field">
                 <label class="modal__label">Full Name <span class="modal__required">*</span></label>
-                <input type="text" name="full_name" class="modal__input" placeholder="Name" required>
+                <input type="text" name="full_name" class="modal__input" placeholder="e.g. Josh De Leon" required>
             </div>
             <div class="modal__row">
                 <div class="modal__field">
@@ -252,7 +252,7 @@
                         onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'">
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-grid-2" style="gap:12px;">
                     <div>
                         <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Email <span style="color:#C99746;">*</span></label>
                         <input type="email" name="email" id="editEmail" required
@@ -267,7 +267,7 @@
                     </div>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="form-grid-2" style="gap:12px;">
                     <div>
                         <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Role <span style="color:#C99746;">*</span></label>
                         <select name="role" id="editRole"

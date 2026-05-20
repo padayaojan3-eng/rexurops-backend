@@ -280,7 +280,7 @@ function renderBpDetail(d) {
     }
 
     document.getElementById('bpDetailContent').innerHTML =
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;margin-bottom:24px;">' +
+        '<div class="form-grid-2" style="margin-bottom:24px;">' +
             '<div><div class="bp-detail-label">Project Name</div><div class="bp-detail-val" style="font-weight:600;color:#0f172a;">' + esc(d.title) + '</div></div>' +
             '<div><div class="bp-detail-label">Client</div><div class="bp-detail-val">' + esc(d.client) + '</div></div>' +
             '<div><div class="bp-detail-label">Created By</div><div class="bp-detail-val">' + esc(d.created_by) + '</div></div>' +
