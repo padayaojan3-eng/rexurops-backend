@@ -1306,13 +1306,19 @@ def employees_list(request):
 
     emp_data = []
     counts = {'all': 0, 'admin': 0, 'engineer': 0, 'worker': 0}
+    ENGINEER_ROLES = ['mechanical_engineer', 'civil_engineer', 'architect']
+    WORKER_ROLES = ['master_plumber', 'worker']
 
     try:
         qs = UserProfile.objects.select_related('user').exclude(role='client').order_by(
             'user__first_name', 'user__last_name'
         )
 
-        if role_filter and role_filter != 'all':
+        if role_filter == 'engineer':
+            qs = qs.filter(role__in=ENGINEER_ROLES)
+        elif role_filter == 'worker':
+            qs = qs.filter(role__in=WORKER_ROLES)
+        elif role_filter and role_filter != 'all':
             qs = qs.filter(role=role_filter)
 
         if search_query:
@@ -1342,8 +1348,8 @@ def employees_list(request):
         counts = {
             'all': UserProfile.objects.exclude(role='client').count(),
             'admin': UserProfile.objects.filter(role='admin').count(),
-            'engineer': UserProfile.objects.filter(role='engineer').count(),
-            'worker': UserProfile.objects.filter(role='worker').count(),
+            'engineer': UserProfile.objects.filter(role__in=ENGINEER_ROLES).count(),
+            'worker': UserProfile.objects.filter(role__in=WORKER_ROLES).count(),
         }
     except Exception:
         all_projects = []

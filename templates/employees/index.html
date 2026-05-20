@@ -57,15 +57,15 @@
     <div class="emp-card">
 
         <div class="emp-card__name">
-            {% if item.profile.role == 'engineer' %}Engr. {% endif %}
+            {% if item.profile.role == 'mechanical_engineer' or item.profile.role == 'civil_engineer' or item.profile.role == 'architect' %}Engr. {% elif item.profile.role == 'master_plumber' %}Master {% endif %}
             {{ item.profile.user.get_full_name|default:item.profile.user.username }}
         </div>
 
         <div class="emp-card__badges">
-            {% if item.profile.role == 'engineer' %}
-                <span class="badge badge--teal">engineer</span>
-            {% elif item.profile.role == 'worker' %}
-                <span class="badge badge--green">worker</span>
+            {% if item.profile.role == 'mechanical_engineer' or item.profile.role == 'civil_engineer' or item.profile.role == 'architect' %}
+                <span class="badge badge--teal">{{ item.profile.get_role_display }}</span>
+            {% elif item.profile.role == 'master_plumber' or item.profile.role == 'worker' %}
+                <span class="badge badge--green">{{ item.profile.get_role_display }}</span>
             {% elif item.profile.role == 'admin' %}
                 <span class="badge badge--blue">admin</span>
             {% endif %}
@@ -159,8 +159,11 @@
                 <div class="modal__field">
                     <label class="modal__label">Role <span class="modal__required">*</span></label>
                     <select name="role" class="modal__select" required>
+                        <option value="mechanical_engineer">Mechanical Engineer</option>
+                        <option value="civil_engineer">Civil Engineer</option>
+                        <option value="architect">Architect</option>
+                        <option value="master_plumber">Master Plumber</option>
                         <option value="worker">Worker</option>
-                        <option value="engineer">Engineer</option>
                         <option value="admin">Admin</option>
                     </select>
                 </div>
@@ -287,8 +290,11 @@
                         <select name="role" id="editRole"
                             style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;cursor:pointer;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 12 12%27%3E%3Cpath fill=%27%2394a3b8%27 d=%27M6 8L1 3h10z%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;"
                             onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'">
+                            <option value="mechanical_engineer">Mechanical Engineer</option>
+                            <option value="civil_engineer">Civil Engineer</option>
+                            <option value="architect">Architect</option>
+                            <option value="master_plumber">Master Plumber</option>
                             <option value="worker">Worker</option>
-                            <option value="engineer">Engineer</option>
                             <option value="admin">Admin</option>
                         </select>
                     </div>

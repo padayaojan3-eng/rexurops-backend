@@ -4,13 +4,19 @@ from django.contrib.auth.models import User
 class UserProfile(models.Model):
     ROLE_CHOICES = [
         ('admin', 'Admin'),
-        ('engineer', 'Engineer'),
+        ('mechanical_engineer', 'Mechanical Engineer'),
+        ('civil_engineer', 'Civil Engineer'),
+        ('architect', 'Architect'),
+        ('master_plumber', 'Master Plumber'),
         ('worker', 'Worker'),
         ('client', 'Client'),
     ]
 
+    ENGINEER_ROLES = ['mechanical_engineer', 'civil_engineer', 'architect']
+    WORKER_ROLES = ['master_plumber', 'worker']
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES)
     phone = models.CharField(max_length=20, blank=True)
     specialization = models.CharField(max_length=255, blank=True)
 
