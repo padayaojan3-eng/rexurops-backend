@@ -232,12 +232,19 @@
 
             <div class="modal__field">
                 <label class="modal__label">Service Type <span class="modal__required">*</span></label>
-                <select name="service_id" class="modal__select" required>
-                    <option value="">Select a service</option>
-                    {% for svc in modal_services %}
-                    <option value="{{ svc.id }}">{{ svc.get_name_display }}</option>
-                    {% endfor %}
-                </select>
+                <div class="cust-dd" id="svcDd">
+                    <button type="button" class="cust-dd__btn" id="svcDdBtn" aria-haspopup="listbox">
+                        <span class="cust-dd__label cust-dd__label--ph" id="svcDdLabel">Select a service</span>
+                        <i class="fas fa-chevron-down cust-dd__arrow"></i>
+                    </button>
+                    <div class="cust-dd__list" id="svcDdList" role="listbox">
+                        <div class="cust-dd__opt cust-dd__opt--ph" data-val="">Select a service</div>
+                        {% for svc in modal_services %}
+                        <div class="cust-dd__opt" data-val="{{ svc.id }}" role="option">{{ svc.get_name_display }}</div>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" name="service_id" id="svcDdVal">
+                </div>
             </div>
 
             <div class="modal__field">
@@ -288,7 +295,10 @@
     var clientModeInput = document.getElementById('clientMode');
 
     function openModal() { overlay.classList.add('modal-overlay--active'); }
-    function closeModal() { overlay.classList.remove('modal-overlay--active'); }
+    function closeModal() {
+        overlay.classList.remove('modal-overlay--active');
+        resetSvcDd();
+    }
 
     openBtn.addEventListener('click', openModal);
     closeBtn.addEventListener('click', closeModal);
@@ -311,6 +321,68 @@
                 clientModeInput.value = 'new';
             }
         });
+    });
+
+    // Custom service dropdown
+    var dd = document.getElementById('svcDd');
+    var ddBtn = document.getElementById('svcDdBtn');
+    var ddList = document.getElementById('svcDdList');
+    var ddLabel = document.getElementById('svcDdLabel');
+    var ddVal = document.getElementById('svcDdVal');
+
+    function openDd() {
+        dd.classList.add('cust-dd--open');
+        var r = ddBtn.getBoundingClientRect();
+        ddList.style.top = (r.bottom + 2) + 'px';
+        ddList.style.left = r.left + 'px';
+        ddList.style.width = r.width + 'px';
+    }
+    function closeDd() { dd.classList.remove('cust-dd--open'); }
+    function resetSvcDd() {
+        ddVal.value = '';
+        ddLabel.textContent = 'Select a service';
+        ddLabel.classList.add('cust-dd__label--ph');
+        ddList.querySelectorAll('.cust-dd__opt').forEach(function(o) { o.classList.remove('cust-dd__opt--sel'); });
+        closeDd();
+    }
+
+    ddBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        dd.classList.contains('cust-dd--open') ? closeDd() : openDd();
+    });
+
+    ddList.querySelectorAll('.cust-dd__opt').forEach(function (opt) {
+        opt.addEventListener('click', function () {
+            var v = opt.dataset.val;
+            ddVal.value = v;
+            ddLabel.textContent = opt.textContent.trim();
+            if (v) {
+                ddLabel.classList.remove('cust-dd__label--ph');
+                ddList.querySelectorAll('.cust-dd__opt').forEach(function(o) { o.classList.remove('cust-dd__opt--sel'); });
+                opt.classList.add('cust-dd__opt--sel');
+            } else {
+                ddLabel.classList.add('cust-dd__label--ph');
+            }
+            closeDd();
+        });
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!dd.contains(e.target)) closeDd();
+    });
+
+    // Validate hidden service_id before form submit
+    overlay.querySelector('form').addEventListener('submit', function (e) {
+        if (!ddVal.value) {
+            e.preventDefault();
+            ddBtn.focus();
+            ddBtn.style.borderColor = '#dc2626';
+            ddBtn.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.1)';
+            setTimeout(function() {
+                ddBtn.style.borderColor = '';
+                ddBtn.style.boxShadow = '';
+            }, 2000);
+        }
     });
 })();
 </script>
