@@ -149,7 +149,8 @@ def login_view(request):
                         first_name=parts[0],
                         last_name=parts[1] if len(parts) > 1 else '',
                     )
-                    UserProfile.objects.create(user=new_user, role=role)
+                    specialization = request.POST.get('specialization', '')
+                    UserProfile.objects.create(user=new_user, role=role, specialization=specialization)
                     ctx['signup_success'] = f'Account "{new_username}" created successfully. They can now sign in.'
 
     return render(request, 'auth/login.html', ctx)

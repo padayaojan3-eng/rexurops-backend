@@ -174,8 +174,22 @@
             </div>
             <div class="modal__field">
                 <label class="modal__label">Specialization</label>
-                <input type="text" name="specialization" class="modal__input"
-                       placeholder="e.g., CCTV and Security Systems">
+                <select name="specialization" class="modal__select">
+                    <option value="">-- Select Specialization --</option>
+                    <optgroup label="Engineers">
+                        <option value="Mechanical Engineer">Mechanical Engineer</option>
+                        <option value="Civil Engineer">Civil Engineer</option>
+                        <option value="Electrical Engineer">Electrical Engineer</option>
+                        <option value="Architect">Architect</option>
+                    </optgroup>
+                    <optgroup label="Workers">
+                        <option value="Master Plumber">Master Plumber</option>
+                        <option value="Master Electrician">Master Electrician</option>
+                        <option value="CCTV & Security Technician">CCTV & Security Technician</option>
+                        <option value="LAN & PABX Technician">LAN & PABX Technician</option>
+                        <option value="General Worker">General Worker</option>
+                    </optgroup>
+                </select>
             </div>
             <div class="modal__footer">
                 <button type="button" class="modal__cancel" id="cancelEmployeeModal">Cancel</button>
@@ -291,9 +305,24 @@
 
                 <div>
                     <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Specialization</label>
-                    <input type="text" name="specialization" id="editSpecialization"
-                        style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;"
+                    <select name="specialization" id="editSpecialization"
+                        style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#1e293b;outline:none;font-family:inherit;cursor:pointer;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 12 12%27%3E%3Cpath fill=%27%2394a3b8%27 d=%27M6 8L1 3h10z%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;"
                         onfocus="this.style.borderColor='#C99746'" onblur="this.style.borderColor='#e2e8f0'">
+                        <option value="">-- Select Specialization --</option>
+                        <optgroup label="Engineers">
+                            <option value="Mechanical Engineer">Mechanical Engineer</option>
+                            <option value="Civil Engineer">Civil Engineer</option>
+                            <option value="Electrical Engineer">Electrical Engineer</option>
+                            <option value="Architect">Architect</option>
+                        </optgroup>
+                        <optgroup label="Workers">
+                            <option value="Master Plumber">Master Plumber</option>
+                            <option value="Master Electrician">Master Electrician</option>
+                            <option value="CCTV & Security Technician">CCTV & Security Technician</option>
+                            <option value="LAN & PABX Technician">LAN & PABX Technician</option>
+                            <option value="General Worker">General Worker</option>
+                        </optgroup>
+                    </select>
                 </div>
 
                 <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px;">
