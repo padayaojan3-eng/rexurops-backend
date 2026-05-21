@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(git -C \"c:\\\\Users\\\\Admin\\\\PROJECT IN MAJOR\\\\RexurOps-Project\" log --oneline --all)",
-      "Bash(git -C \"c:\\\\Users\\\\Admin\\\\PROJECT IN MAJOR\\\\RexurOps-Project\" branch -a)"
-    ]
-  }
-}
